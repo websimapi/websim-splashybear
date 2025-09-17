@@ -347,15 +347,8 @@ window.addEventListener('touchmove', (e) => {
     const diff = touchEndX - touchStartX;
     if (Math.abs(diff) > 20) { // Swipe threshold
         isSwiping = true;
-        if (diff > 0) moveBear(1);
-        else moveBear(-1);
         touchStartX = 0; // Reset after one swipe
     }
-});
-window.addEventListener('click', (e) => {
-    if (e.target.tagName === 'BUTTON') return;
-    if (e.clientX < window.innerWidth / 2) moveBear(-1);
-    else moveBear(1);
 });
 
 
