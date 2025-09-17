@@ -41,7 +41,7 @@ const treeLeavesMat = new THREE.MeshLambertMaterial({ color: 0x228B22 });
 
 // --- GAME CONSTANTS ---
 const BEAR_X_LIMIT = 3.5;
-const BEAR_MOVE_SPEED = 0.1;
+const BEAR_MOVE_SPEED = 0.08; // This will be the max speed per frame
 const BEAR_WOBBLE_AMOUNT = 0.2; // radians
 
 // --- GAME OBJECTS ---
@@ -355,6 +355,7 @@ function onPointerDown(event) {
         if (isLog) {
             // If we didn't click a fish, and we did click the log, move the bear
             bear.userData.targetX = THREE.MathUtils.clamp(intersect.point.x, -BEAR_X_LIMIT, BEAR_X_LIMIT);
+            bear.userData.isMovingWithKeys = false; // Stop key movement on click
             break; // Prioritize log over other scenery
         }
     }
@@ -389,6 +390,10 @@ function updatePointer(event) {
 function handleKeyDown(event) {
     if (gameState.current !== 'PLAYING') return;
     keysPressed[event.key] = true;
+
+    if (event.key === 'a' || event.key === 'ArrowLeft' || event.key === 'd' || event.key === 'ArrowRight') {
+        bear.userData.isMovingWithKeys = true;
+    }
 }
 
 function handleKeyUp(event) {
@@ -468,16 +473,23 @@ function animate() {
             moveDirection = 1;
         }
 
-        if (moveDirection !== 0) {
-            bear.userData.targetX = THREE.MathUtils.clamp(bear.position.x + moveDirection * BEAR_MOVE_SPEED, -BEAR_X_LIMIT, BEAR_X_LIMIT);
+        if (moveDirection !== 0 && bear.userData.isMovingWithKeys) {
+            bear.userData.targetX = THREE.MathUtils.clamp(bear.position.x + moveDirection, -BEAR_X_LIMIT, BEAR_X_LIMIT);
         }
 
         const oldX = bear.position.x;
-        // Lerp position for smooth movement - slower speed
-        bear.position.x = THREE.MathUtils.lerp(bear.position.x, bear.userData.targetX, 0.05);
+        
+        // Move towards targetX at a constant speed
+        const distanceToTarget = bear.userData.targetX - bear.position.x;
+        const moveThisFrame = Math.sign(distanceToTarget) * Math.min(Math.abs(distanceToTarget), BEAR_MOVE_SPEED);
+        
+        if (Math.abs(distanceToTarget) > 0.01) { // A small threshold to prevent jittering
+             bear.position.x += moveThisFrame;
+        }
+
         const velocityX = bear.position.x - oldX;
 
-        // Wobble animation based on movement, not velocity
+        // Wobble animation based on movement
         if (Math.abs(velocityX) > 0.001) { // If moving
             bear.userData.wobbleTimer += 0.2; // This controls wobble speed
             const wobbleAngle = Math.sin(bear.userData.wobbleTimer) * BEAR_WOBBLE_AMOUNT;
@@ -485,6 +497,7 @@ function animate() {
         } else { // If not moving
              // Smoothly return to upright position
             bear.rotation.z = THREE.MathUtils.lerp(bear.rotation.z, 0, 0.1);
+            bear.userData.isMovingWithKeys = false; // Allow key movement again after click-move is done
         }
 
         // Fish movement
