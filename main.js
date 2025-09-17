@@ -85,20 +85,26 @@ function createBear() {
 function createScenery() {
     const group = new THREE.Group();
 
-    // Main cliff platform
-    const mainPlatform = createVoxel(0, 0, 5, 12, 4, 6, rockMat);
+    // Main cliff platform (where bear stands) - made it narrower to match river
+    const mainPlatform = createVoxel(0, 0, 5, 8, 4, 6, rockMat);
     group.add(mainPlatform);
 
-    // Side rocks for detail
-    const rock1 = createVoxel(-6, 0, 4, 2, 3, 3, rockMat);
-    group.add(rock1);
-    const rock2 = createVoxel(6, 0, 4, 2, 2, 4, rockMat);
-    group.add(rock2);
+    // River banks
+    const leftBank = createVoxel(-8, 0, -5, 8, 4, 20, rockMat);
+    group.add(leftBank);
+    const rightBank = createVoxel(8, 0, -5, 8, 4, 20, rockMat);
+    group.add(rightBank);
     
-    // Trees
-    group.add(createTree(-7, 3, 3));
-    group.add(createTree(7, 2, 5));
-    group.add(createTree(-6, 2.5, 7));
+    // Add trees on the new banks
+    // Left side
+    group.add(createTree(-7, 2, 0));
+    group.add(createTree(-8, 2, -5));
+    group.add(createTree(-6, 2, -10));
+
+    // Right side
+    group.add(createTree(7, 2, -2));
+    group.add(createTree(9, 2, 2));
+    group.add(createTree(8, 2, -8));
 
     return group;
 }
