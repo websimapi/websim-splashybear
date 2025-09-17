@@ -100,5 +100,46 @@ export function createScenery() {
         if (Math.random() > 0.6) group.add(createBush(-7.2 - Math.random()*2, groundY, z + Math.random()*2-1));
         if (Math.random() > 0.6) group.add(createBush( 7.2 + Math.random()*2, groundY, z + Math.random()*2-1));
     }
+    
+    // --- Distant Terrain Generation ---
+    const distantTerrainGroup = new THREE.Group();
+    const terrainColors = [
+        grassMat, 
+        rockMat,
+        new THREE.MeshLambertMaterial({ color: 0x287a4b }), // Darker green
+        new THREE.MeshLambertMaterial({ color: 0x707070 })  // Darker rock
+    ];
+
+    for (let i = 0; i < 80; i++) {
+        const z = -40 - (Math.random() * 120); // Position from z=-40 to z=-160
+        const isFar = z < -80;
+        
+        const side = Math.random() < 0.5 ? -1 : 1;
+        const x = side * (10 + Math.random() * 40); // Place them wider than the immediate banks
+
+        const w = 8 + Math.random() * (isFar ? 30 : 15);
+        const d = 8 + Math.random() * (isFar ? 30 : 15);
+        const h = 5 + Math.random() * (isFar ? 40 : 20);
+        
+        const y = -15 + h / 2; // Position them lower down to look like mountains rising
+
+        const mat = terrainColors[Math.floor(Math.random() * terrainColors.length)];
+        const terrainChunk = createVoxel(x, y, z, w, h, d, mat);
+        distantTerrainGroup.add(terrainChunk);
+
+        // Add a secondary smaller chunk sometimes for more natural, lumpy shapes
+        if (Math.random() > 0.6) {
+             const w2 = w * (0.4 + Math.random() * 0.4);
+             const d2 = d * (0.4 + Math.random() * 0.4);
+             const h2 = h * (0.4 + Math.random() * 0.4);
+             const x2 = x + (Math.random() - 0.5) * w;
+             const z2 = z + (Math.random() - 0.5) * d;
+             const y2 = y + (Math.random() - 0.5) * h * 0.5;
+             const secondaryChunk = createVoxel(x2, y2, z2, w2, h2, d2, mat);
+             distantTerrainGroup.add(secondaryChunk);
+        }
+    }
+    group.add(distantTerrainGroup);
+
     return group;
 }
