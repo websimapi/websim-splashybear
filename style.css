@@ -84,6 +84,7 @@ h1 {
 p {
     font-size: 1.2em;
     margin-top: 0;
+    max-width: 90%;
 }
 
 button {
@@ -120,4 +121,3 @@ button:active {
         font-size: 1.5em;
     }
 }
-

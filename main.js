@@ -41,14 +41,16 @@ const fishTailMat = new THREE.MeshLambertMaterial({ color: 0xff4500 });
 const rockMat = new THREE.MeshLambertMaterial({ color: 0x808080 });
 const waterMat = new THREE.MeshLambertMaterial({ color: 0x1e90ff, transparent: true, opacity: 0.8 });
 const foamMat = new THREE.MeshLambertMaterial({ color: 0xffffff, transparent: true, opacity: 0.9 });
+const treeTrunkMat = new THREE.MeshLambertMaterial({ color: 0x654321 });
+const treeLeavesMat = new THREE.MeshLambertMaterial({ color: 0x228B22 });
 
 // --- GAME OBJECTS ---
 const lanes = [-2, 0, 2];
 const bear = createBear();
 scene.add(bear);
 
-const platform = createPlatform();
-scene.add(platform);
+const scenery = createScenery();
+scene.add(scenery);
 
 const waterfall = createWaterfall();
 scene.add(waterfall);
@@ -80,40 +82,80 @@ function createBear() {
     return group;
 }
 
-function createPlatform() {
+function createScenery() {
     const group = new THREE.Group();
-    for (let i = 0; i < 5; i++) {
-        const x = (Math.random() - 0.5) * 10;
-        const y = Math.random() * 2;
-        const z = (Math.random() - 0.5) * 10;
-        const size = 2 + Math.random() * 3;
-        const rock = createVoxel(x, y, z, size, size, size, rockMat);
-        group.add(rock);
-    }
-    const mainPlatform = createVoxel(0, 1, 4, 6, 2, 3, rockMat);
+
+    // Main cliff platform
+    const mainPlatform = createVoxel(0, 0, 5, 12, 4, 6, rockMat);
     group.add(mainPlatform);
+
+    // Side rocks for detail
+    const rock1 = createVoxel(-6, 0, 4, 2, 3, 3, rockMat);
+    group.add(rock1);
+    const rock2 = createVoxel(6, 0, 4, 2, 2, 4, rockMat);
+    group.add(rock2);
+    
+    // Trees
+    group.add(createTree(-7, 3, 3));
+    group.add(createTree(7, 2, 5));
+    group.add(createTree(-6, 2.5, 7));
+
+    return group;
+}
+
+function createTree(x, y, z) {
+    const group = new THREE.Group();
+    const trunkHeight = 1 + Math.random();
+    const leavesHeight = 2 + Math.random() * 2;
+    group.add(createVoxel(0, trunkHeight/2, 0, 0.5, trunkHeight, 0.5, treeTrunkMat));
+    group.add(createVoxel(0, trunkHeight + leavesHeight/2 - 0.5, 0, 1.5, leavesHeight, 1.5, treeLeavesMat));
+    group.position.set(x, y, z);
     return group;
 }
 
 function createWaterfall() {
     const group = new THREE.Group();
-    const waterfallPlane = new THREE.Mesh(new THREE.PlaneGeometry(10, 20), waterMat);
-    waterfallPlane.rotation.x = -Math.PI / 2;
-    waterfallPlane.position.set(0, 2, -4);
-    group.add(waterfallPlane);
+    group.name = "waterfall";
+    const waterWidth = 8;
+    const cliffEdgeZ = 2.5;
+    const cliffTopY = 2;
 
+    // River part on top
+    const riverGeo = new THREE.PlaneGeometry(waterWidth, 15);
+    const river = new THREE.Mesh(riverGeo, waterMat);
+    river.rotation.x = -Math.PI / 2;
+    river.position.set(0, cliffTopY, cliffEdgeZ - 7.5);
+    group.add(river);
+
+    // Falling water part
+    const fallGeo = new THREE.PlaneGeometry(waterWidth, 20);
+    const fall = new THREE.Mesh(fallGeo, waterMat);
+    fall.position.set(0, cliffTopY - 10, cliffEdgeZ);
+    group.add(fall);
+    
     // Foam particles
     for (let i = 0; i < 50; i++) {
         const foam = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), foamMat);
-        foam.position.set(
-            (Math.random() - 0.5) * 9,
-            2,
-            -14 + Math.random() * 10
-        );
-        foam.userData.velocity = Math.random() * 0.1 + 0.05;
+        const onRiver = Math.random() > 0.4;
+        foam.userData.onRiver = onRiver;
+        if (onRiver) {
+             foam.position.set(
+                (Math.random() - 0.5) * (waterWidth - 1),
+                cliffTopY + 0.1,
+                cliffEdgeZ - (Math.random() * 15)
+            );
+            foam.userData.velocity = new THREE.Vector3(0, 0, Math.random() * 0.05 + 0.05);
+        } else {
+            foam.position.set(
+                (Math.random() - 0.5) * (waterWidth - 1),
+                cliffTopY - (Math.random() * 20),
+                cliffEdgeZ
+            );
+            foam.userData.velocity = new THREE.Vector3(0, -(Math.random() * 0.1 + 0.1), 0);
+        }
         group.add(foam);
     }
-    group.name = "waterfall";
+    
     return group;
 }
 
@@ -123,7 +165,7 @@ function createFish() {
     group.add(createVoxel(0, 0.1, -0.6, 0.2, 0.8, 0.2, fishTailMat));
     
     group.userData.lane = lanes[Math.floor(Math.random() * lanes.length)];
-    group.position.set(group.userData.lane, -2, -2);
+    group.position.set(group.userData.lane, -2, 1);
 
     const speedMultiplier = 1 + (gameState.score / 500); // increase speed with score
     const forwardVelocity = (Math.random() * 0.5 + 1.5) * speedMultiplier;
@@ -272,13 +314,20 @@ function animate() {
 
     // Animate Waterfall
     const waterfallGroup = scene.getObjectByName("waterfall");
+    const cliffEdgeZ = 2.5;
+    const cliffTopY = 2;
+
     if (waterfallGroup) {
         waterfallGroup.children.forEach(child => {
             if (child.userData.velocity) {
-                child.position.z += child.userData.velocity;
-                if (child.position.z > -4) {
-                    child.position.z = -14 + Math.random() * 5;
-                    child.position.x = (Math.random() - 0.5) * 9;
+                child.position.add(child.userData.velocity);
+
+                if (child.userData.onRiver && child.position.z > cliffEdgeZ) {
+                    // Reset to back of river
+                    child.position.z = cliffEdgeZ - 15;
+                } else if (!child.userData.onRiver && child.position.y < cliffTopY - 20) {
+                    // Reset to top of fall
+                    child.position.y = cliffTopY;
                 }
             }
         });
@@ -324,4 +373,3 @@ function animate() {
 }
 
 animate();
-
