@@ -74,6 +74,7 @@ function createBear() {
     group.add(createVoxel(-0.5, -1, 0, 0.5, 0.5, 0.5, brownMat));
     group.add(createVoxel(0.5, -1, 0, 0.5, 0.5, 0.5, brownMat));
     group.position.set(0, 4, 4);
+    group.rotation.y = Math.PI; // Flip the bear to face the camera
     return group;
 }
 
