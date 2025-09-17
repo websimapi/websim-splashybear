@@ -262,7 +262,7 @@ function startGame() {
         streak: 1,
     };
     bear.position.set(0, 4, 4);
-    bear.rotation.set(0, 0, 0);
+    bear.rotation.set(0, Math.PI, 0);
 
     updateUI();
 
