@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 const fishMat = new THREE.MeshLambertMaterial({ color: 0xc0c0c0 });
-const fishTailMat = new THREE.MeshLambertMaterial({ color: 0xff4500 });
+const fishFinsMat = new THREE.MeshLambertMaterial({ color: 0xff6a00 }); // Unified orange for fins and tail
 const bellyMat = new THREE.MeshLambertMaterial({ color: 0xe6e6e6 });
 const finMat = new THREE.MeshLambertMaterial({ color: 0xff7a1a });
 const eyeMat = new THREE.MeshLambertMaterial({ color: 0x111111 });
@@ -33,24 +33,24 @@ export function createFish(scene, score = 0) {
         group.add(createVoxel(0, -h * 0.3, z, w * 0.95, bellyH, (length / segments) * 0.98, bellyMat));
     }
     
-    // tail (vertical caudal fin + small stabilizer)
+    // tail (vertical caudal fin + small stabilizer) - made larger
     const tailZ = -0.4 + length + 0.15;
-    const tailBase = createVoxel(0, 0.0, tailZ - 0.1, 0.25, 0.6, 0.18, fishTailMat);
-    const tailV = createVoxel(0, 0.0, tailZ, 0.06, 0.9, 0.5, fishTailMat);
-    const tailH = createVoxel(0, -0.05, tailZ - 0.05, 0.5, 0.08, 0.35, fishTailMat);
+    const tailBase = createVoxel(0, 0.0, tailZ - 0.1, 0.25, 0.6, 0.18, fishFinsMat);
+    const tailV = createVoxel(0, 0.0, tailZ, 0.06, 1.2, 0.6, fishFinsMat); // Taller and deeper
+    const tailH = createVoxel(0, -0.05, tailZ - 0.05, 0.6, 0.08, 0.4, fishFinsMat); // Wider
     group.add(tailBase, tailV, tailH);
     
-    // fins
-    const dorsal = createVoxel(0, 0.55, 0.9, 0.1, 0.25, 0.9, finMat);
+    // fins - made larger
+    const dorsal = createVoxel(0, 0.65, 0.9, 0.1, 0.4, 0.9, fishFinsMat); // Taller
     const anal   = createVoxel(0, -0.55, 1.1, 0.1, 0.22, 0.8, finMat);
-    const pectoralL = createVoxel(0.42, -0.05, 0.4, 0.06, 0.18, 0.35, finMat);
-    const pectoralR = createVoxel(-0.42, -0.05, 0.4, 0.06, 0.18, 0.35, finMat);
+    const pectoralL = createVoxel(0.45, -0.05, 0.4, 0.06, 0.25, 0.5, fishFinsMat); // Larger
+    const pectoralR = createVoxel(-0.45, -0.05, 0.4, 0.06, 0.25, 0.5, fishFinsMat); // Larger
     const pelvicL = createVoxel(0.22, -0.45, 1.0, 0.08, 0.16, 0.25, finMat);
     const pelvicR = createVoxel(-0.22, -0.45, 1.0, 0.08, 0.16, 0.25, finMat);
     group.add(dorsal, anal, pectoralL, pectoralR, pelvicL, pelvicR);
     
     // head details: mouth, gill cover, eyes
-    group.add(createVoxel(0, 0.0, 0.25, 0.7, 0.6, 0.15, bellyMat)); // gill cover
+    group.add(createVoxel(0, 0.0, 0.25, 0.7, 0.6, 0.15, fishMat)); // gill cover
     const scleraL = createVoxel(0.30, 0.24, 0.08, 0.24, 0.24, 0.22, scleraMat);
     const scleraR = createVoxel(-0.30, 0.24, 0.08, 0.24, 0.24, 0.22, scleraMat);
     const pupilL  = createVoxel(0.32, 0.24, 0.14, 0.10, 0.10, 0.06, pupilMat);
@@ -103,6 +103,7 @@ export function updateFish(fish) {
     const tailSwing = Math.sin(ud.swimTimer * 2.2) * 0.5;
     if (ud.tailV) ud.tailV.rotation.y = tailSwing;
     if (ud.tailH) ud.tailH.rotation.y = tailSwing;
+    if (ud.dorsal) ud.dorsal.rotation.y = Math.sin(ud.swimTimer * 2.2 + 0.5) * 0.1; // gentle dorsal sway
     const finFlap = Math.sin(ud.swimTimer * 3.0) * 0.25;
     if (ud.pectoralL) ud.pectoralL.rotation.z = 0.2 + finFlap;
     if (ud.pectoralR) ud.pectoralR.rotation.z = -0.2 - finFlap;
