@@ -39,6 +39,11 @@ const foamMat = new THREE.MeshLambertMaterial({ color: 0xffffff, transparent: tr
 const treeTrunkMat = new THREE.MeshLambertMaterial({ color: 0x654321 });
 const treeLeavesMat = new THREE.MeshLambertMaterial({ color: 0x228B22 });
 
+// --- GAME CONSTANTS ---
+const BEAR_X_LIMIT = 3.5;
+const BEAR_MOVE_SPEED = 0.1;
+const BEAR_WOBBLE_AMOUNT = 0.2; // radians
+
 // --- GAME OBJECTS ---
 const lanes = [-2, 0, 2]; // Keep for fish x-positions for now
 const bear = createBear();
@@ -75,6 +80,8 @@ function createBear() {
     group.add(createVoxel(0.5, -1, 0, 0.5, 0.5, 0.5, brownMat));
     group.position.set(0, 4, 4);
     group.rotation.y = Math.PI; // Flip the bear to face the camera
+    group.userData.targetX = 0;
+    group.userData.targetZRot = 0;
     return group;
 }
 
@@ -130,6 +137,7 @@ function createScenery() {
     // Log for the bear to stand on
     const logGeo = new THREE.CylinderGeometry(0.7, 0.7, 9, 8);
     const log = new THREE.Mesh(logGeo, darkBrownMat);
+    log.name = "log"; // For raycasting
     log.rotation.z = Math.PI / 2;
     log.position.set(0, 2.7, 4);
     group.add(log);
@@ -299,24 +307,36 @@ function updateUI() {
 // --- CONTROLS ---
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
+let keysPressed = {};
+let lastTouchX = null;
+let isDragging = false;
 
 function onPointerDown(event) {
     if (gameState.current !== 'PLAYING') return;
 
     // Alow clicking UI buttons
     if (event.target.tagName === 'BUTTON') return;
-
-    // Calculate pointer position in normalized device coordinates
-    pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
-    pointer.y = - (event.clientY / window.innerHeight) * 2 + 1;
-
+    
+    isDragging = true;
+    updatePointer(event);
+    
     raycaster.setFromCamera(pointer, camera);
     const intersects = raycaster.intersectObjects(scene.children, true);
 
+    let fishClicked = false;
     for (const intersect of intersects) {
         let object = intersect.object;
-        // Traverse up to find the group named 'fish'
-        while (object.parent && object.name !== 'fish') {
+        let isLog = false;
+
+        // Traverse up to find the group name ('fish' or 'log')
+        while (object.parent) {
+             if (object.name === 'fish') {
+                break;
+            }
+             if (object.name === 'log') {
+                isLog = true;
+                break;
+            }
             object = object.parent;
         }
 
@@ -328,29 +348,59 @@ function onPointerDown(event) {
             
             scene.remove(activeFish);
             activeFish = createFish();
+            fishClicked = true;
             break; // Stop after catching one
+        }
+
+        if (isLog) {
+            // If we didn't click a fish, and we did click the log, move the bear
+            bear.userData.targetX = THREE.MathUtils.clamp(intersect.point.x, -BEAR_X_LIMIT, BEAR_X_LIMIT);
+            break; // Prioritize log over other scenery
         }
     }
 }
 
-window.addEventListener('pointerdown', onPointerDown);
-
-let touchStartX = 0;
-let isSwiping = false;
-window.addEventListener('touchstart', (e) => {
-    touchStartX = e.touches[0].clientX;
-    isSwiping = false;
-});
-window.addEventListener('touchmove', (e) => {
-    if (touchStartX === 0) return;
-    const touchEndX = e.touches[0].clientX;
-    const diff = touchEndX - touchStartX;
-    if (Math.abs(diff) > 20) { // Swipe threshold
-        isSwiping = true;
-        touchStartX = 0; // Reset after one swipe
+function onPointerMove(event) {
+    if (!isDragging || gameState.current !== 'PLAYING') return;
+    
+    const currentX = event.touches ? event.touches[0].clientX : event.clientX;
+    if (lastTouchX !== null) {
+        const deltaX = (currentX - lastTouchX) * 0.05; // Sensitivity factor
+        bear.userData.targetX = THREE.MathUtils.clamp(bear.position.x + deltaX, -BEAR_X_LIMIT, BEAR_X_LIMIT);
     }
-});
+    lastTouchX = currentX;
+}
 
+function onPointerUp(event) {
+    isDragging = false;
+    lastTouchX = null;
+    bear.userData.targetZRot = 0; // Stop wobbling
+}
+
+function updatePointer(event) {
+    const x = event.touches ? event.touches[0].clientX : event.clientX;
+    const y = event.touches ? event.touches[0].clientY : event.clientY;
+    pointer.x = (x / window.innerWidth) * 2 - 1;
+    pointer.y = - (y / window.innerHeight) * 2 + 1;
+    if(event.touches) {
+        lastTouchX = x;
+    }
+}
+
+function handleKeyDown(event) {
+    if (gameState.current !== 'PLAYING') return;
+    keysPressed[event.key] = true;
+}
+
+function handleKeyUp(event) {
+    keysPressed[event.key] = false;
+}
+
+window.addEventListener('pointerdown', onPointerDown);
+window.addEventListener('pointermove', onPointerMove);
+window.addEventListener('pointerup', onPointerUp);
+window.addEventListener('keydown', handleKeyDown);
+window.addEventListener('keyup', handleKeyUp);
 
 // --- SOUNDS ---
 let audioCtx;
@@ -411,6 +461,33 @@ function animate() {
     }
 
     if (gameState.current === 'PLAYING') {
+        // Bear movement
+        let moveDirection = 0;
+        if (keysPressed['a'] || keysPressed['ArrowLeft']) {
+            moveDirection = -1;
+        } else if (keysPressed['d'] || keysPressed['ArrowRight']) {
+            moveDirection = 1;
+        }
+
+        if (moveDirection !== 0) {
+            bear.userData.targetX = THREE.MathUtils.clamp(bear.position.x + moveDirection * BEAR_MOVE_SPEED, -BEAR_X_LIMIT, BEAR_X_LIMIT);
+        }
+
+        const oldX = bear.position.x;
+        // Lerp position for smooth movement
+        bear.position.x = THREE.MathUtils.lerp(bear.position.x, bear.userData.targetX, 0.1);
+        const velocityX = bear.position.x - oldX;
+
+        // Wobble animation based on velocity
+        if (!isDragging) {
+             bear.userData.targetZRot = -velocityX * 5; // Wobble based on keyboard movement speed
+        } else {
+             bear.userData.targetZRot = -velocityX * 2; // Reduce wobble effect when dragging
+        }
+       
+        bear.rotation.z = THREE.MathUtils.lerp(bear.rotation.z, THREE.MathUtils.clamp(bear.userData.targetZRot, -BEAR_WOBBLE_AMOUNT, BEAR_WOBBLE_AMOUNT), 0.1);
+
+
         // Fish movement
         if (activeFish) {
             activeFish.position.add(activeFish.userData.velocity);
