@@ -81,7 +81,7 @@ function createBear() {
     group.position.set(0, 4, 4);
     group.rotation.y = Math.PI; // Flip the bear to face the camera
     group.userData.targetX = 0;
-    group.userData.targetZRot = 0;
+    group.userData.wobbleTimer = 0;
     return group;
 }
 
@@ -374,7 +374,6 @@ function onPointerMove(event) {
 function onPointerUp(event) {
     isDragging = false;
     lastTouchX = null;
-    bear.userData.targetZRot = 0; // Stop wobbling
 }
 
 function updatePointer(event) {
@@ -474,19 +473,19 @@ function animate() {
         }
 
         const oldX = bear.position.x;
-        // Lerp position for smooth movement
-        bear.position.x = THREE.MathUtils.lerp(bear.position.x, bear.userData.targetX, 0.1);
+        // Lerp position for smooth movement - slower speed
+        bear.position.x = THREE.MathUtils.lerp(bear.position.x, bear.userData.targetX, 0.05);
         const velocityX = bear.position.x - oldX;
 
-        // Wobble animation based on velocity
-        if (!isDragging) {
-             bear.userData.targetZRot = -velocityX * 5; // Wobble based on keyboard movement speed
-        } else {
-             bear.userData.targetZRot = -velocityX * 2; // Reduce wobble effect when dragging
+        // Wobble animation based on movement, not velocity
+        if (Math.abs(velocityX) > 0.001) { // If moving
+            bear.userData.wobbleTimer += 0.2; // This controls wobble speed
+            const wobbleAngle = Math.sin(bear.userData.wobbleTimer) * BEAR_WOBBLE_AMOUNT;
+            bear.rotation.z = wobbleAngle;
+        } else { // If not moving
+             // Smoothly return to upright position
+            bear.rotation.z = THREE.MathUtils.lerp(bear.rotation.z, 0, 0.1);
         }
-       
-        bear.rotation.z = THREE.MathUtils.lerp(bear.rotation.z, THREE.MathUtils.clamp(bear.userData.targetZRot, -BEAR_WOBBLE_AMOUNT, BEAR_WOBBLE_AMOUNT), 0.1);
-
 
         // Fish movement
         if (activeFish) {
