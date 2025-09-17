@@ -40,7 +40,7 @@ const treeTrunkMat = new THREE.MeshLambertMaterial({ color: 0x654321 });
 const treeLeavesMat = new THREE.MeshLambertMaterial({ color: 0x228B22 });
 
 // --- GAME OBJECTS ---
-const lanes = [-2, 0, 2];
+const lanes = [-2, 0, 2]; // Keep for fish x-positions for now
 const bear = createBear();
 scene.add(bear);
 
@@ -211,18 +211,24 @@ function createWaterfall() {
 
 function createFish() {
     const group = new THREE.Group();
+    group.name = 'fish';
     group.add(createVoxel(0, 0, 0, 1, 0.5, 0.5, fishMat));
     group.add(createVoxel(0, 0.1, -0.6, 0.2, 0.8, 0.2, fishTailMat));
     
-    group.userData.lane = lanes[Math.floor(Math.random() * lanes.length)];
-    group.position.set(group.userData.lane, -2, 1);
+    const riverWidth = 7;
+    const xPos = (Math.random() - 0.5) * riverWidth;
+    group.position.set(xPos, 2.1, -12); // Start at back of river
 
     const speedMultiplier = 1 + (gameState.score / 500); // increase speed with score
-    const forwardVelocity = (Math.random() * 0.5 + 1.5) * speedMultiplier;
-    const upVelocity = (Math.random() * 0.3 + 0.8) * speedMultiplier;
+    const swimSpeed = (0.05 + Math.random() * 0.05) * speedMultiplier;
     
-    group.userData.velocity = new THREE.Vector3(0, upVelocity, forwardVelocity);
-    group.userData.gravity = 0.02 * speedMultiplier;
+    group.userData = {
+        velocity: new THREE.Vector3(0, 0, swimSpeed),
+        initialX: xPos,
+        swimFrequency: Math.random() * 5 + 2, // How fast it wiggles
+        swimAmplitude: Math.random() * 0.5 + 0.2, // How far it wiggles
+        swimTimer: Math.random() * Math.PI * 2, // Start wiggle at random point
+    };
     
     scene.add(group);
     return group;
@@ -243,7 +249,6 @@ let gameState = {
     current: 'IDLE',
     score: 0,
     streak: 1,
-    bearLane: 1,
 };
 
 startButton.addEventListener('click', startGame);
@@ -254,10 +259,8 @@ function startGame() {
         current: 'PLAYING',
         score: 0,
         streak: 1,
-        bearLane: 1,
     };
-    bear.position.x = lanes[gameState.bearLane];
-    bear.position.y = 4;
+    bear.position.set(0, 4, 4);
     bear.rotation.set(0, 0, 0);
 
     updateUI();
@@ -267,7 +270,14 @@ function startGame() {
     scoreContainer.classList.remove('hidden');
     streakContainer.classList.remove('hidden');
     
-    if (activeFish) scene.remove(activeFish);
+    if (activeFish) {
+        // Clear any other fish that might be lingering
+        scene.children.forEach(child => {
+            if (child.name === 'fish') {
+                scene.remove(child);
+            }
+        });
+    }
     activeFish = createFish();
 }
 
@@ -286,20 +296,43 @@ function updateUI() {
 }
 
 // --- CONTROLS ---
-function moveBear(direction) {
-    if (gameState.current !== 'PLAYING') return;
-    
-    gameState.bearLane += direction;
-    if (gameState.bearLane < 0) gameState.bearLane = 0;
-    if (gameState.bearLane > lanes.length - 1) gameState.bearLane = lanes.length - 1;
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
 
-    bear.position.x = lanes[gameState.bearLane];
+function onPointerDown(event) {
+    if (gameState.current !== 'PLAYING') return;
+
+    // Alow clicking UI buttons
+    if (event.target.tagName === 'BUTTON') return;
+
+    // Calculate pointer position in normalized device coordinates
+    pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
+    pointer.y = - (event.clientY / window.innerHeight) * 2 + 1;
+
+    raycaster.setFromCamera(pointer, camera);
+    const intersects = raycaster.intersectObjects(scene.children, true);
+
+    for (const intersect of intersects) {
+        let object = intersect.object;
+        // Traverse up to find the group named 'fish'
+        while (object.parent && object.name !== 'fish') {
+            object = object.parent;
+        }
+
+        if (object.name === 'fish' && object === activeFish) {
+            playSFX(sounds.catch);
+            gameState.score += 10 * gameState.streak;
+            gameState.streak++;
+            updateUI();
+            
+            scene.remove(activeFish);
+            activeFish = createFish();
+            break; // Stop after catching one
+        }
+    }
 }
 
-window.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowLeft') moveBear(-1);
-    if (e.key === 'ArrowRight') moveBear(1);
-});
+window.addEventListener('pointerdown', onPointerDown);
 
 let touchStartX = 0;
 let isSwiping = false;
@@ -386,26 +419,17 @@ function animate() {
     if (gameState.current === 'PLAYING') {
         // Fish movement
         if (activeFish) {
-            activeFish.position.z += activeFish.userData.velocity.z;
-            activeFish.position.y += activeFish.userData.velocity.y;
-            activeFish.userData.velocity.y -= activeFish.userData.gravity;
-            activeFish.rotation.x += 0.1;
-
-            // Collision check
-            const fishPos = activeFish.position;
-            const bearPos = bear.position;
-            if (Math.abs(fishPos.z - bearPos.z) < 1 && Math.abs(fishPos.y - bearPos.y) < 2 && fishPos.x === bearPos.x) {
-                playSFX(sounds.catch);
-                gameState.score += 10 * gameState.streak;
-                gameState.streak++;
-                updateUI();
-                
-                scene.remove(activeFish);
-                activeFish = createFish();
-            }
+            activeFish.position.add(activeFish.userData.velocity);
+            
+            // Add swimming wiggle
+            const ud = activeFish.userData;
+            ud.swimTimer += 0.1;
+            activeFish.position.x = ud.initialX + Math.sin(ud.swimTimer * ud.swimFrequency) * ud.swimAmplitude;
+            
+            activeFish.rotation.y = Math.sin(ud.swimTimer * ud.swimFrequency) * 0.2;
 
             // Missed fish
-            if (fishPos.z > bearPos.z + 2) {
+            if (activeFish.position.z > 3.5) { // Past the log
                 gameState.streak = 1;
                 updateUI();
                 gameOver();
