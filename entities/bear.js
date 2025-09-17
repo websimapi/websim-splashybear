@@ -37,14 +37,15 @@ export function updateBear(bear, moveDirection) {
     const oldX = bear.position.x;
     const distanceToTarget = bear.userData.targetX - bear.position.x;
     const moveThisFrame = Math.sign(distanceToTarget) * Math.min(Math.abs(distanceToTarget), BEAR_MOVE_SPEED);
-    if (Math.abs(distanceToTarget) > 0.01) bear.position.x += moveThisFrame;
+    if (Math.abs(distanceToTarget) > 0.01) {
+        bear.position.x += moveThisFrame;
+    }
+
     const velocityX = bear.position.x - oldX;
     if (Math.abs(velocityX) > 0.001) {
         bear.userData.wobbleTimer += 0.2;
         bear.rotation.z = Math.sin(bear.userData.wobbleTimer) * BEAR_WOBBLE_AMOUNT;
     } else {
         bear.rotation.z = THREE.MathUtils.lerp(bear.rotation.z, 0, 0.1);
-        bear.userData.isMovingWithKeys = false;
     }
 }
-

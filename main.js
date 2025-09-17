@@ -58,21 +58,65 @@ function gameOver() {
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 let keysPressed = {};
-let lastTouchX = null;
-let isDragging = false;
+let isDragging = false; // Simplified from previous lastTouchX logic
 
 function onPointerDown(event) {
-    if (gameState.current !== 'PLAYING') return;
-    if (event.target.tagName === 'BUTTON') return;
+    if (gameState.current !== 'PLAYING' || event.target.tagName === 'BUTTON') return;
     isDragging = true;
+    onPointerMove(event); // Call move immediately to handle taps
+}
+
+function onPointerMove(event) {
+    if (!isDragging || gameState.current !== 'PLAYING') return;
+
+    updatePointer(event);
+    raycaster.setFromCamera(pointer, camera);
+    const intersects = raycaster.intersectObjects(scene.children, true);
+
+    for (const intersect of intersects) {
+        let object = intersect.object;
+        let isLog = false;
+        let isFish = false;
+
+        while (object.parent) {
+            if (object.name === 'fish') {
+                isFish = true;
+                break;
+            }
+            if (object.name === 'log') {
+                isLog = true;
+                break;
+            }
+            object = object.parent;
+        }
+
+        // Catch fish on tap/click - this logic now lives in onPointerUp
+        if (isFish && object === activeFish) {
+            // No action on drag-over, only on pointer up
+            continue; 
+        }
+
+        if (isLog) {
+            bear.userData.targetX = THREE.MathUtils.clamp(intersect.point.x, -BEAR_X_LIMIT, BEAR_X_LIMIT);
+            bear.userData.isMovingWithKeys = false;
+            break; // Stop after finding the log
+        }
+    }
+}
+
+function onPointerUp(event) {
+    if (gameState.current !== 'PLAYING') {
+        isDragging = false;
+        return;
+    }
+    
+    // Check for fish catch on release
     updatePointer(event);
     raycaster.setFromCamera(pointer, camera);
     const intersects = raycaster.intersectObjects(scene.children, true);
     for (const intersect of intersects) {
-        let object = intersect.object; let isLog = false;
-        while (object.parent) {
-            if (object.name === 'fish') break;
-            if (object.name === 'log') { isLog = true; break; }
+        let object = intersect.object;
+        while(object.parent && object.name !== 'fish') {
             object = object.parent;
         }
         if (object.name === 'fish' && object === activeFish) {
@@ -84,29 +128,16 @@ function onPointerDown(event) {
             activeFish = createFish(scene, gameState.score);
             break;
         }
-        if (isLog) {
-            bear.userData.targetX = THREE.MathUtils.clamp(intersect.point.x, -BEAR_X_LIMIT, BEAR_X_LIMIT);
-            bear.userData.isMovingWithKeys = false;
-            break;
-        }
     }
+    
+    isDragging = false;
 }
-function onPointerMove(event) {
-    if (!isDragging || gameState.current !== 'PLAYING') return;
-    const currentX = event.touches ? event.touches[0].clientX : event.clientX;
-    if (lastTouchX !== null) {
-        const deltaX = (currentX - lastTouchX) * 0.05;
-        bear.userData.targetX = THREE.MathUtils.clamp(bear.position.x + deltaX, -BEAR_X_LIMIT, BEAR_X_LIMIT);
-    }
-    lastTouchX = currentX;
-}
-function onPointerUp() { isDragging = false; lastTouchX = null; }
+
 function updatePointer(event) {
-    const x = event.touches ? event.touches[0].clientX : event.clientX;
-    const y = event.touches ? event.touches[0].clientY : event.clientY;
-    pointer.x = (x / window.innerWidth) * 2 - 1;
-    pointer.y = -(y / window.innerHeight) * 2 + 1;
-    if (event.touches) lastTouchX = x;
+    // Handle both mouse and touch events
+    const eventCoord = event.changedTouches ? event.changedTouches[0] : event;
+    pointer.x = (eventCoord.clientX / window.innerWidth) * 2 - 1;
+    pointer.y = -(eventCoord.clientY / window.innerHeight) * 2 + 1;
 }
 
 function handleKeyDown(event) {
@@ -117,7 +148,15 @@ function handleKeyDown(event) {
     }
 }
 
-function handleKeyUp(event) { keysPressed[event.key] = false; }
+function handleKeyUp(event) {
+    keysPressed[event.key] = false;
+    if (event.key === 'a' || event.key === 'ArrowLeft' || event.key === 'd' || event.key === 'ArrowRight') {
+        // Only stop if no other movement key is pressed.
+        if (!keysPressed['a'] && !keysPressed['ArrowLeft'] && !keysPressed['d'] && !keysPressed['ArrowRight']) {
+            bear.userData.isMovingWithKeys = false;
+        }
+    }
+}
 
 window.addEventListener('pointerdown', onPointerDown);
 window.addEventListener('pointermove', onPointerMove);
