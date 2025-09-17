@@ -6,7 +6,7 @@ const bellyMat = new THREE.MeshLambertMaterial({ color: 0xe6e6e6 });
 const finMat = new THREE.MeshLambertMaterial({ color: 0xff7a1a });
 const eyeMat = new THREE.MeshLambertMaterial({ color: 0x111111 });
 const scleraMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
-const pupilMat = new THREE.MeshLambertMaterial({ color: 0x1a1a1a });
+const pupilMat = new THREE.MeshLambertMaterial({ color: 0x000000 });
 
 function createVoxel(x, y, z, w, h, d, mat) {
     const geo = new THREE.BoxGeometry(w, h, d);
@@ -21,12 +21,14 @@ export function createFish(scene, score = 0) {
     
     // body (tapered along +Z, nose forward)
     const segments = 6, length = 3.0, maxW = 0.8, maxH = 0.9;
+    const segmentsArr = [];
     for (let i = 0; i < segments; i++) {
         const t = i / (segments - 1);
         const w = THREE.MathUtils.lerp(maxW, 0.35, t);
         const h = THREE.MathUtils.lerp(maxH, 0.4, t);
         const z = -0.4 + t * length;
-        group.add(createVoxel(0, 0, z, w, h, length / segments, fishMat));
+        const bodySeg = createVoxel(0, 0, z, w, h, length / segments, fishMat);
+        group.add(bodySeg); segmentsArr.push({ mesh: bodySeg, baseX: 0, phase: t });
         const bellyH = h * 0.25;
         group.add(createVoxel(0, -h * 0.3, z, w * 0.95, bellyH, (length / segments) * 0.98, bellyMat));
     }
@@ -62,7 +64,7 @@ export function createFish(scene, score = 0) {
     const riverWidth = 7;
     const xPos = (Math.random() - 0.5) * riverWidth;
     const baseY = 2.1;
-    group.position.set(xPos, baseY, -12);
+    group.position.set(xPos, baseY, -24);
     const speedMultiplier = 1 + (score / 500);
     const swimSpeed = (0.05 + Math.random() * 0.05) * speedMultiplier;
     group.userData = {
@@ -73,7 +75,8 @@ export function createFish(scene, score = 0) {
         swimTimer: Math.random() * Math.PI * 2,
         baseRotY: group.rotation.y,
         prevX: xPos,
-        tailV, tailH, dorsal, anal, pectoralL, pectoralR
+        tailV, tailH, dorsal, anal, pectoralL, pectoralR,
+        segments: segmentsArr, wiggleAmp: 0.22, wiggleFreq: 2.6
     };
     scene.add(group);
     return group;
@@ -103,6 +106,12 @@ export function updateFish(fish) {
     const finFlap = Math.sin(ud.swimTimer * 3.0) * 0.25;
     if (ud.pectoralL) ud.pectoralL.rotation.z = 0.2 + finFlap;
     if (ud.pectoralR) ud.pectoralR.rotation.z = -0.2 - finFlap;
+    
+    // spine wiggle across segments
+    const spinePhase = ud.swimTimer * ud.wiggleFreq;
+    if (ud.segments) for (const s of ud.segments) {
+        s.mesh.position.x = s.baseX + Math.sin(spinePhase + s.phase * Math.PI) * ud.wiggleAmp;
+    }
 }
 
 export function isFishPastLog(fish) {
