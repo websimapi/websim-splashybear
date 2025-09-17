@@ -4,21 +4,16 @@ import * as THREE from 'three';
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87ceeb);
 
-const camera = new THREE.OrthographicCamera(-8, 8, 8, -8, 1, 1000);
-camera.position.set(20, 20, 20);
-camera.lookAt(0, 0, 0);
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 1000);
+camera.position.set(0, 10, -2);
+camera.lookAt(0, 2, 0);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 const gameContainer = document.getElementById('game-container');
 gameContainer.appendChild(renderer.domElement);
 
 function resizeRenderer() {
-    const aspect = window.innerWidth / window.innerHeight;
-    const zoom = 1.0; 
-    camera.left = -8 * aspect * zoom;
-    camera.right = 8 * aspect * zoom;
-    camera.top = 8 * zoom;
-    camera.bottom = -8 * zoom;
+    camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 }
