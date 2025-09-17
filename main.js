@@ -78,16 +78,19 @@ function createBear() {
     // Legs
     group.add(createVoxel(-0.5, -1, 0, 0.5, 0.5, 0.5, brownMat));
     group.add(createVoxel(0.5, -1, 0, 0.5, 0.5, 0.5, brownMat));
-    group.position.set(0, 3, 4);
+    group.position.set(0, 4, 4);
     return group;
 }
 
 function createScenery() {
     const group = new THREE.Group();
 
-    // Main cliff platform (where bear stands) - made it narrower to match river
-    const mainPlatform = createVoxel(0, 0, 5, 8, 4, 6, rockMat);
-    group.add(mainPlatform);
+    // Log for the bear to stand on
+    const logGeo = new THREE.CylinderGeometry(0.7, 0.7, 9, 8);
+    const log = new THREE.Mesh(logGeo, darkBrownMat);
+    log.rotation.z = Math.PI / 2;
+    log.position.set(0, 2.7, 4);
+    group.add(log);
 
     // River banks
     const leftBank = createVoxel(-8, 0, -5, 8, 4, 20, rockMat);
@@ -213,7 +216,7 @@ function startGame() {
         bearLane: 1,
     };
     bear.position.x = lanes[gameState.bearLane];
-    bear.position.y = 3;
+    bear.position.y = 4;
     bear.rotation.set(0, 0, 0);
 
     updateUI();
