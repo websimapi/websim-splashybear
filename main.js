@@ -15,6 +15,9 @@ scene.add(scenery);
 const waterfall = createWaterfall();
 scene.add(waterfall);
 
+// ensure lighting is present for Lambert materials
+createLights(scene);
+
 let activeFish = null;
 
 // --- UI & STATE (refactored) ---
@@ -118,31 +121,11 @@ window.addEventListener('pointerup', onPointerUp);
 window.addEventListener('keydown', handleKeyDown);
 window.addEventListener('keyup', handleKeyUp);
 
-// --- SOUNDS (refactored) ---
-wireAudioUnlock(initAudio);
-
-async function initAudio() {
-    if (audioCtx) return;
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    
-    sounds.catch = await loadSound('catch.mp3');
-    sounds.splash = await loadSound('splash.mp3');
-    sounds.whoosh = await loadSound('whoosh.mp3');
-}
-
-async function loadSound(url) {
-    const response = await fetch(url);
-    const arrayBuffer = await response.arrayBuffer();
-    return await audioCtx.decodeAudioData(arrayBuffer);
-}
-
-function playSFX(buffer) {
-    if (!audioCtx || !buffer) return;
-    const source = audioCtx.createBufferSource();
-    source.buffer = buffer;
-    source.connect(audioCtx.destination);
-    source.start(0);
-}
+// mount renderer and handle sizing
+renderer.setPixelRatio(window.devicePixelRatio || 1);
+resizeRenderer();
+document.getElementById('game-container').appendChild(renderer.domElement);
+window.addEventListener('resize', resizeRenderer);
 
 // --- GAME LOOP (trimmed) ---
 const gravity = new THREE.Vector3(0, -0.05, 0);
