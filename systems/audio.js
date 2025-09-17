@@ -12,6 +12,7 @@ export async function initAudio() {
 export function wireAudioUnlock(initFn) {
     window.addEventListener('click', initFn, { once: true });
     window.addEventListener('touchstart', initFn, { once: true });
+    window.addEventListener('pointerdown', initFn, { once: true });
 }
 
 async function loadSound(url) {
@@ -27,4 +28,3 @@ export function playSFX(buffer) {
     source.connect(audioCtx.destination);
     source.start(0);
 }
-

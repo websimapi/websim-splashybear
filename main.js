@@ -30,6 +30,7 @@ let gameState = { current: 'IDLE', score: 0, streak: 1 };
 
 startButton.addEventListener('click', startGame);
 restartButton.addEventListener('click', startGame);
+wireAudioUnlock(initAudio);
 
 function startGame() {
     gameState = { current: 'PLAYING', score: 0, streak: 1 };
@@ -37,6 +38,7 @@ function startGame() {
     bear.rotation.set(0, Math.PI, 0);
     updateUIValues({ score: gameState.score, streak: gameState.streak });
     showHUD();
+    try { initAudio(); } catch (e) { /* ignore */ }
     if (activeFish) {
         scene.children.forEach(child => { if (child.name === 'fish') scene.remove(child); });
     }
@@ -122,16 +124,14 @@ window.addEventListener('keydown', handleKeyDown);
 window.addEventListener('keyup', handleKeyUp);
 
 // mount renderer and handle sizing
-renderer.setPixelRatio(window.devicePixelRatio || 1);
-resizeRenderer();
-document.getElementById('game-container').appendChild(renderer.domElement);
+import { mountRenderer } from './scene.js';
+mountRenderer(document.getElementById('game-container'));
 window.addEventListener('resize', resizeRenderer);
 
 // --- GAME LOOP (trimmed) ---
 const gravity = new THREE.Vector3(0, -0.05, 0);
 
 function animate() {
-    requestAnimationFrame(animate);
     updateWaterfall(waterfall);
     if (gameState.current === 'PLAYING') {
         // Bear movement
@@ -157,4 +157,4 @@ function animate() {
     renderer.render(scene, camera);
 }
 
-animate();
+renderer.setAnimationLoop(animate);
