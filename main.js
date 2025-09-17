@@ -122,14 +122,16 @@ window.addEventListener('keydown', handleKeyDown);
 window.addEventListener('keyup', handleKeyUp);
 
 // mount renderer and handle sizing
-import { mountRenderer } from './scene.js';
-mountRenderer(document.getElementById('game-container'));
+renderer.setPixelRatio(window.devicePixelRatio || 1);
+resizeRenderer();
+document.getElementById('game-container').appendChild(renderer.domElement);
 window.addEventListener('resize', resizeRenderer);
 
 // --- GAME LOOP (trimmed) ---
 const gravity = new THREE.Vector3(0, -0.05, 0);
 
 function animate() {
+    requestAnimationFrame(animate);
     updateWaterfall(waterfall);
     if (gameState.current === 'PLAYING') {
         // Bear movement
@@ -155,4 +157,4 @@ function animate() {
     renderer.render(scene, camera);
 }
 
-renderer.setAnimationLoop(animate);
+animate();

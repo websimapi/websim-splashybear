@@ -8,7 +8,6 @@ camera.position.set(0, 12, 9);
 camera.lookAt(0, 2, 0);
 
 export const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.outputColorSpace = THREE.SRGBColorSpace;
 
 export function resizeRenderer() {
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -24,8 +23,3 @@ export function createLights(targetScene) {
     targetScene.add(directionalLight);
 }
 
-export function mountRenderer(container) {
-    renderer.setPixelRatio(window.devicePixelRatio || 1);
-    resizeRenderer();
-    container.appendChild(renderer.domElement);
-}
