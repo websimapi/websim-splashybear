@@ -1,249 +1,176 @@
 import * as THREE from 'three';
-import { createBear, createScenery, createWaterfall, createFish } from './gameObjects.js';
-import { gameState, updateGameState, showStartScreen, showGameScreen, showGameOverScreen, updateUI, getStartButton, getRestartButton } from './gameState.js';
-import { setupControls, setPointerMoveCallback, keysPressed } from './controls.js';
-import { initAudio, playSFX, sounds } from './audio.js';
+import { scene, camera, renderer, resizeRenderer, createLights } from './scene.js';
+import { createBear, updateBear, BEAR_X_LIMIT } from './entities/bear.js';
+import { createScenery } from './entities/scenery.js';
+import { createWaterfall, updateWaterfall } from './entities/waterfall.js';
+import { createFish, updateFish, isFishPastLog } from './entities/fish.js';
+import { initAudio, playSFX, sounds, wireAudioUnlock } from './systems/audio.js';
+import { bindUI, updateUIValues, showGameOver, showHUD, showStart } from './systems/ui.js';
 
-// --- SCENE SETUP ---
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x87ceeb);
-
-const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 1000);
-camera.position.set(0, 12, 9);
-camera.lookAt(0, 2, 0);
-
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-const gameContainer = document.getElementById('game-container');
-gameContainer.appendChild(renderer.domElement);
-
-function resizeRenderer() {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-}
-window.addEventListener('resize', resizeRenderer);
-resizeRenderer();
-
-// --- LIGHTING ---
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
-scene.add(ambientLight);
-const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-directionalLight.position.set(10, 20, 5);
-scene.add(directionalLight);
-
-// --- GAME CONSTANTS ---
-const BEAR_X_LIMIT = 3.5;
-const BEAR_MOVE_SPEED = 0.08; // This will be the max speed per frame
-const BEAR_WOBBLE_AMOUNT = 0.2; // radians
-
-// --- GAME OBJECTS ---
+// --- GAME OBJECTS (refactored) ---
 const bear = createBear();
 scene.add(bear);
-
 const scenery = createScenery();
 scene.add(scenery);
-
 const waterfall = createWaterfall();
 scene.add(waterfall);
 
 let activeFish = null;
 
-// --- CONTROLS ---
-const startButton = getStartButton();
-const restartButton = getRestartButton();
+// --- UI & STATE (refactored) ---
+const {
+  startScreen, gameOverScreen, scoreContainer, streakContainer,
+  scoreEl, streakEl, finalScoreEl, startButton, restartButton
+} = bindUI();
+
+let gameState = { current: 'IDLE', score: 0, streak: 1 };
 
 startButton.addEventListener('click', startGame);
 restartButton.addEventListener('click', startGame);
 
 function startGame() {
-    updateGameState({
-        current: 'PLAYING',
-        score: 0,
-        streak: 1,
-    });
+    gameState = { current: 'PLAYING', score: 0, streak: 1 };
     bear.position.set(0, 4, 4);
     bear.rotation.set(0, Math.PI, 0);
-
-    updateUI();
-    showGameScreen();
-    
+    updateUIValues({ score: gameState.score, streak: gameState.streak });
+    showHUD();
     if (activeFish) {
-        // Clear any other fish that might be lingering
-        scene.children.forEach(child => {
-            if (child.name === 'fish') {
-                scene.remove(child);
-            }
-        });
+        scene.children.forEach(child => { if (child.name === 'fish') scene.remove(child); });
     }
-    activeFish = createFish(gameState);
-    scene.add(activeFish);
+    activeFish = createFish(scene, gameState.score);
 }
 
 function gameOver() {
-    updateGameState({ current: 'GAME_OVER' });
-    showGameOverScreen();
-    playSFX('splash');
+    gameState.current = 'GAME_OVER';
+    finalScoreEl.innerText = gameState.score;
+    showGameOver();
+    playSFX(sounds.splash);
 }
 
-// --- CONTROLS ---
-function onPointerDown(event, raycaster, pointer) {
-    if (gameState.current !== 'PLAYING') return;
+// --- CONTROLS (kept local for simplicity) ---
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+let keysPressed = {};
+let lastTouchX = null;
+let isDragging = false;
 
-    // Allow clicking UI buttons
+function onPointerDown(event) {
+    if (gameState.current !== 'PLAYING') return;
     if (event.target.tagName === 'BUTTON') return;
-    
+    isDragging = true;
+    updatePointer(event);
     raycaster.setFromCamera(pointer, camera);
     const intersects = raycaster.intersectObjects(scene.children, true);
-
-    let fishClicked = false;
     for (const intersect of intersects) {
-        let object = intersect.object;
-        let isLog = false;
-
-        // Traverse up to find the group name ('fish' or 'log')
+        let object = intersect.object; let isLog = false;
         while (object.parent) {
-             if (object.name === 'fish') {
-                break;
-            }
-             if (object.name === 'log') {
-                isLog = true;
-                break;
-            }
+            if (object.name === 'fish') break;
+            if (object.name === 'log') { isLog = true; break; }
             object = object.parent;
         }
-
         if (object.name === 'fish' && object === activeFish) {
-            playSFX('catch');
-            updateGameState({
-                score: gameState.score + 10 * gameState.streak,
-                streak: gameState.streak + 1
-            });
-            updateUI();
-            
+            playSFX(sounds.catch);
+            gameState.score += 10 * gameState.streak;
+            gameState.streak++;
+            updateUIValues({ score: gameState.score, streak: gameState.streak });
             scene.remove(activeFish);
-            activeFish = createFish(gameState);
-            scene.add(activeFish);
-            fishClicked = true;
-            break; // Stop after catching one
+            activeFish = createFish(scene, gameState.score);
+            break;
         }
-
         if (isLog) {
-            // If we didn't click a fish, and we did click the log, move the bear
             bear.userData.targetX = THREE.MathUtils.clamp(intersect.point.x, -BEAR_X_LIMIT, BEAR_X_LIMIT);
-            bear.userData.isMovingWithKeys = false; // Stop key movement on click
-            break; // Prioritize log over other scenery
+            bear.userData.isMovingWithKeys = false;
+            break;
         }
     }
 }
+function onPointerMove(event) {
+    if (!isDragging || gameState.current !== 'PLAYING') return;
+    const currentX = event.touches ? event.touches[0].clientX : event.clientX;
+    if (lastTouchX !== null) {
+        const deltaX = (currentX - lastTouchX) * 0.05;
+        bear.userData.targetX = THREE.MathUtils.clamp(bear.position.x + deltaX, -BEAR_X_LIMIT, BEAR_X_LIMIT);
+    }
+    lastTouchX = currentX;
+}
+function onPointerUp() { isDragging = false; lastTouchX = null; }
+function updatePointer(event) {
+    const x = event.touches ? event.touches[0].clientX : event.clientX;
+    const y = event.touches ? event.touches[0].clientY : event.clientY;
+    pointer.x = (x / window.innerWidth) * 2 - 1;
+    pointer.y = -(y / window.innerHeight) * 2 + 1;
+    if (event.touches) lastTouchX = x;
+}
 
-function onKeyDown(event) {
+function handleKeyDown(event) {
     if (gameState.current !== 'PLAYING') return;
-
+    keysPressed[event.key] = true;
     if (event.key === 'a' || event.key === 'ArrowLeft' || event.key === 'd' || event.key === 'ArrowRight') {
         bear.userData.isMovingWithKeys = true;
     }
 }
 
-function onKeyUp(event) {
-    // Key up handling if needed
+function handleKeyUp(event) { keysPressed[event.key] = false; }
+
+window.addEventListener('pointerdown', onPointerDown);
+window.addEventListener('pointermove', onPointerMove);
+window.addEventListener('pointerup', onPointerUp);
+window.addEventListener('keydown', handleKeyDown);
+window.addEventListener('keyup', handleKeyUp);
+
+// --- SOUNDS (refactored) ---
+wireAudioUnlock(initAudio);
+
+async function initAudio() {
+    if (audioCtx) return;
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    
+    sounds.catch = await loadSound('catch.mp3');
+    sounds.splash = await loadSound('splash.mp3');
+    sounds.whoosh = await loadSound('whoosh.mp3');
 }
 
-setPointerMoveCallback((deltaX) => {
-    if (gameState.current !== 'PLAYING') return;
-    bear.userData.targetX = THREE.MathUtils.clamp(bear.position.x + deltaX, -BEAR_X_LIMIT, BEAR_X_LIMIT);
-});
+async function loadSound(url) {
+    const response = await fetch(url);
+    const arrayBuffer = await response.arrayBuffer();
+    return await audioCtx.decodeAudioData(arrayBuffer);
+}
 
-setupControls(onPointerDown, onKeyDown, onKeyUp);
+function playSFX(buffer) {
+    if (!audioCtx || !buffer) return;
+    const source = audioCtx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(audioCtx.destination);
+    source.start(0);
+}
 
-// --- GAME LOOP ---
+// --- GAME LOOP (trimmed) ---
 const gravity = new THREE.Vector3(0, -0.05, 0);
 
 function animate() {
     requestAnimationFrame(animate);
-
-    // Animate Waterfall
-    const waterfallGroup = scene.getObjectByName("waterfall");
-    const cliffEdgeZ = 2.5;
-    const cliffTopY = 2;
-
-    if (waterfallGroup) {
-        waterfallGroup.children.forEach(child => {
-            if (child.userData.velocity) {
-                child.position.add(child.userData.velocity);
-
-                if (child.userData.onRiver && child.position.z > cliffEdgeZ) {
-                    // Reset to back of river
-                    child.position.z = cliffEdgeZ - 15;
-                } else if (!child.userData.onRiver && child.position.y < cliffTopY - 20) {
-                    // Reset to top of fall
-                    child.position.y = cliffTopY;
-                }
-            }
-        });
-    }
-
+    updateWaterfall(waterfall);
     if (gameState.current === 'PLAYING') {
         // Bear movement
         let moveDirection = 0;
-        if (keysPressed['a'] || keysPressed['ArrowLeft']) {
-            moveDirection = -1;
-        } else if (keysPressed['d'] || keysPressed['ArrowRight']) {
-            moveDirection = 1;
-        }
-
-        if (moveDirection !== 0 && bear.userData.isMovingWithKeys) {
-            bear.userData.targetX = THREE.MathUtils.clamp(bear.position.x + moveDirection, -BEAR_X_LIMIT, BEAR_X_LIMIT);
-        }
-
-        const oldX = bear.position.x;
-        
-        // Move towards targetX at a constant speed
-        const distanceToTarget = bear.userData.targetX - bear.position.x;
-        const moveThisFrame = Math.sign(distanceToTarget) * Math.min(Math.abs(distanceToTarget), BEAR_MOVE_SPEED);
-        
-        if (Math.abs(distanceToTarget) > 0.01) { // A small threshold to prevent jittering
-             bear.position.x += moveThisFrame;
-        }
-
-        const velocityX = bear.position.x - oldX;
-
-        // Wobble animation based on movement
-        if (Math.abs(velocityX) > 0.001) { // If moving
-            bear.userData.wobbleTimer += 0.2; // This controls wobble speed
-            const wobbleAngle = Math.sin(bear.userData.wobbleTimer) * BEAR_WOBBLE_AMOUNT;
-            bear.rotation.z = wobbleAngle;
-        } else { // If not moving
-             // Smoothly return to upright position
-            bear.rotation.z = THREE.MathUtils.lerp(bear.rotation.z, 0, 0.1);
-            bear.userData.isMovingWithKeys = false; // Allow key movement again after click-move is done
-        }
-
-        // Fish movement
+        if (keysPressed['a'] || keysPressed['ArrowLeft']) moveDirection = -1;
+        else if (keysPressed['d'] || keysPressed['ArrowRight']) moveDirection = 1;
+        updateBear(bear, moveDirection);
+        // Fish
         if (activeFish) {
-            activeFish.position.add(activeFish.userData.velocity);
-            
-            // Add swimming wiggle
-            const ud = activeFish.userData;
-            ud.swimTimer += 0.1;
-            activeFish.position.x = ud.initialX + Math.sin(ud.swimTimer * ud.swimFrequency) * ud.swimAmplitude;
-            
-            activeFish.rotation.y = Math.sin(ud.swimTimer * ud.swimFrequency) * 0.2;
-
-            // Missed fish
-            if (activeFish.position.z > 3.5) { // Past the log
-                updateGameState({ streak: 1 });
-                updateUI();
+            updateFish(activeFish);
+            if (isFishPastLog(activeFish)) {
+                gameState.streak = 1;
+                updateUIValues({ score: gameState.score, streak: gameState.streak });
                 gameOver();
             }
         }
     } else if (gameState.current === 'GAME_OVER') {
-        // Bear fall animation
         if (bear.position.y > -10) {
             bear.position.add(gravity);
             bear.rotation.z += 0.05;
         }
     }
-    
     renderer.render(scene, camera);
 }
 
