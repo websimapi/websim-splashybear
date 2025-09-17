@@ -43,6 +43,7 @@ const waterMat = new THREE.MeshLambertMaterial({ color: 0x1e90ff, transparent: t
 const foamMat = new THREE.MeshLambertMaterial({ color: 0xffffff, transparent: true, opacity: 0.9 });
 const treeTrunkMat = new THREE.MeshLambertMaterial({ color: 0x654321 });
 const treeLeavesMat = new THREE.MeshLambertMaterial({ color: 0x228B22 });
+const snowMat = new THREE.MeshLambertMaterial({ color: 0xf0f0f0 });
 
 // --- GAME OBJECTS ---
 const lanes = [-2, 0, 2];
@@ -84,6 +85,7 @@ function createBear() {
 
 function createScenery() {
     const group = new THREE.Group();
+    group.name = "scenery";
 
     // Log for the bear to stand on
     const logGeo = new THREE.CylinderGeometry(0.7, 0.7, 9, 8);
@@ -92,22 +94,59 @@ function createScenery() {
     log.position.set(0, 2.7, 4);
     group.add(log);
 
-    // River banks
-    const leftBank = createVoxel(-8, 0, -5, 8, 4, 20, rockMat);
-    group.add(leftBank);
-    const rightBank = createVoxel(8, 0, -5, 8, 4, 20, rockMat);
-    group.add(rightBank);
+    // Mountain sides
+    group.add(createMountain(-1)); // Left side
+    group.add(createMountain(1));  // Right side
     
-    // Add trees on the new banks
+    // Add trees on the mountain sides
     // Left side
-    group.add(createTree(-7, 2, 0));
-    group.add(createTree(-8, 2, -5));
-    group.add(createTree(-6, 2, -10));
+    group.add(createTree(-7, 3, 0));
+    group.add(createTree(-8.5, 3.5, -5));
+    group.add(createTree(-6.5, 3.2, -10));
 
     // Right side
-    group.add(createTree(7, 2, -2));
-    group.add(createTree(9, 2, 2));
-    group.add(createTree(8, 2, -8));
+    group.add(createTree(7, 3, -2));
+    group.add(createTree(9, 3.5, 2));
+    group.add(createTree(8.5, 3.2, -8));
+
+    return group;
+}
+
+function createMountain(side) { // side is -1 for left, 1 for right
+    const group = new THREE.Group();
+    
+    // Base of the mountain, extends low
+    const base = createVoxel(12 * side, -12, -5, 16, 28, 30, rockMat);
+    base.rotation.y = Math.random() * Math.PI;
+    group.add(base);
+
+    // Mid-section, closer to the river
+    const mid = createVoxel(8 * side, 0, -5, 12, 10, 25, rockMat);
+    mid.rotation.y = Math.random() * Math.PI;
+    group.add(mid);
+
+    // Top-section where trees are
+    const top = createVoxel(7 * side, 2.5, -5, 10, 5, 20, rockMat);
+    top.rotation.y = Math.random() * Math.PI;
+    group.add(top);
+    
+    // Higher peaks
+    const peak1 = createVoxel(11 * side, 8, -8, 8, 12, 10, rockMat);
+    peak1.rotation.y = Math.random() * Math.PI;
+    group.add(peak1);
+    
+    const peak2 = createVoxel(13 * side, 10, 0, 6, 10, 8, rockMat);
+    peak2.rotation.y = Math.random() * Math.PI;
+    group.add(peak2);
+    
+    // Add some snow caps
+    const snow1 = createVoxel(peak1.position.x, 14, peak1.position.z, 8, 1, 10, snowMat);
+    snow1.rotation.y = peak1.rotation.y;
+    group.add(snow1);
+    
+    const snow2 = createVoxel(peak2.position.x, 15, peak2.position.z, 6, 1, 8, snowMat);
+    snow2.rotation.y = peak2.rotation.y;
+    group.add(snow2);
 
     return group;
 }
