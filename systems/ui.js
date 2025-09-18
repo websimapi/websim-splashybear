@@ -11,7 +11,7 @@ export function bindUI() {
     const streakEl = document.getElementById('streak');
     const finalScoreEl = document.getElementById('final-score');
     const startButton = document.getElementById('start-button');
-    const restartButton = document.getElementById('restart-button');
+    // const restartButton = document.getElementById('restart-button'); // This was not in the HTML
 
     // new elements
     const quickChoices = document.getElementById('quick-choices');
@@ -51,9 +51,9 @@ export function bindUI() {
     }
 
     startButton.addEventListener('click', handleStart);
-    if (restartButton) restartButton.addEventListener('click', handleStart);
+    // if (restartButton) restartButton.addEventListener('click', handleStart);
 
-    return { startScreen, gameOverScreen, scoreContainer, streakContainer, scoreEl, streakEl, finalScoreEl, startButton, restartButton };
+    return { startScreen, gameOverScreen, scoreContainer, streakContainer, scoreEl, streakEl, finalScoreEl, startButton };
 }
 
 export function updateUIValues({ score, streak }) {

@@ -128,21 +128,38 @@ if (devConsoleButton) {
 }
 
 let playerProgress = getPlayerProgress();
-let gameState = { current: 'IDLE', score: 0, streak: 1 };
+let gameState = { current: 'IDLE', score: 0, streak: 1, idleAnimTimer: 0 };
 
 function refreshShowcase() {
     if (showcaseBear) { scene.remove(showcaseBear); showcaseBear = null; }
-    if (showcaseFish) { scene.remove(showcaseFish); showcaseFish = null; }
+    if (showcaseFish) { 
+        if(showcaseFish.parent) showcaseFish.parent.remove(showcaseFish);
+        else scene.remove(showcaseFish); 
+        showcaseFish = null; 
+    }
     // Bear showcase
     showcaseBear = createBear(playerProgress.selectedBear);
     showcaseBear.name = 'showcase-bear';
     showcaseBear.position.set(0, 4.65, 0.8);
-    showcaseBear.rotation.set(0, 0, 0);
+    showcaseBear.rotation.set(0, Math.PI, 0); // Face camera
     scene.add(showcaseBear);
     // Fish showcase
     showcaseFish = createFish(scene, 0, playerProgress.selectedFish);
     showcaseFish.name = 'showcase-fish';
-    showcaseFish.position.set(2.0, 2.3, -1.5);
+    
+    // Attach fish to bear's hand
+    const rightArm = showcaseBear.getObjectByName('rightArm');
+    if (rightArm) {
+        scene.remove(showcaseFish); // remove from main scene to add to arm
+        rightArm.add(showcaseFish);
+        showcaseFish.position.set(0.1, -0.7, 0.4);
+        showcaseFish.rotation.set(-Math.PI / 4, Math.PI / 2, Math.PI);
+        showcaseFish.scale.set(0.5, 0.5, 0.5);
+    } else {
+        // Fallback position if arm isn't found
+        showcaseFish.position.set(2.0, 2.3, -1.5);
+    }
+    
     if (showcaseFish.userData?.velocity) showcaseFish.userData.velocity.set(0, 0, 0);
     if (showcaseFish.userData) showcaseFish.userData.swimAmplitude = 0;
 }
@@ -156,7 +173,20 @@ function setupStartScreen() {
         if (type === 'bear') playerProgress.selectedBear = id;
         if (type === 'fish') playerProgress.selectedFish = id;
         savePlayerProgress(playerProgress);
-        populateUnlocks(playerProgress, () => {});
+        // We don't need to re-populate, just update selection visuals
+        const quickBearName = document.querySelector('#choose-bear span');
+        const quickBearImg = document.querySelector('#choose-bear img');
+        const quickFishName = document.querySelector('#choose-fish span');
+        const quickFishImg = document.querySelector('#choose-fish img');
+        
+        const selectedBearInfo = BEARS.find(b => b.id === playerProgress.selectedBear);
+        const selectedFishInfo = FISH.find(f => f.id === playerProgress.selectedFish);
+
+        if(quickBearName) quickBearName.textContent = selectedBearInfo.name;
+        if(quickBearImg) quickBearImg.src = selectedBearInfo.asset;
+        if(quickFishName) quickFishName.textContent = selectedFishInfo.name;
+        if(quickFishImg) quickFishImg.src = selectedFishInfo.asset;
+
         refreshShowcase(); // update 3D showcase to reflect new selection
     });
     refreshShowcase();
@@ -179,7 +209,11 @@ function getFishToSpawn() {
 function startGame() {
     gameState = { current: 'PLAYING', score: 0, streak: 1 };
     if (showcaseBear) { scene.remove(showcaseBear); showcaseBear = null; }
-    if (showcaseFish) { scene.remove(showcaseFish); showcaseFish = null; }
+    if (showcaseFish) { 
+        if(showcaseFish.parent) showcaseFish.parent.remove(showcaseFish);
+        else scene.remove(showcaseFish); 
+        showcaseFish = null; 
+    }
     
     if (bear) scene.remove(bear);
     bear = createBear(playerProgress.selectedBear);
@@ -425,7 +459,15 @@ function animate() {
             bear.rotation.z += 0.05;
         }
     } else { // IDLE (title screen)
-        // Handled by setupStartScreen
+        gameState.idleAnimTimer += 0.05;
+        if (showcaseBear) {
+            const rightArm = showcaseBear.getObjectByName('rightArm');
+            if (rightArm) {
+                // Bobbing animation for the arm
+                const armBob = Math.sin(gameState.idleAnimTimer) * 0.1;
+                rightArm.rotation.x = armBob;
+            }
+        }
     }
     renderer.render(scene, camera);
 }

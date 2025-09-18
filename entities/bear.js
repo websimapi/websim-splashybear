@@ -38,11 +38,13 @@ export function createBear(type = 'splashy') {
         
         // Left Arm
         const leftArm = createVoxel(-0.95, armY, armZ, armWidth, armHeight, armDepth, bodyMat);
+        leftArm.name = 'leftArm';
         leftArm.rotation.z = -Math.PI / 16;
         group.add(leftArm);
 
         // Right Arm
         const rightArm = createVoxel(0.95, armY, armZ, armWidth, armHeight, armDepth, bodyMat);
+        rightArm.name = 'rightArm';
         rightArm.rotation.z = Math.PI / 16;
         group.add(rightArm);
     }
