@@ -161,11 +161,11 @@ function setupStartScreen() {
     });
     refreshShowcase();
     showStart();
+    startButton.innerText = 'START';
 }
 setupStartScreen();
 
 startButton.addEventListener('click', startGame);
-restartButton.addEventListener('click', startGame);
 wireAudioUnlock(initAudio);
 
 function getFishToSpawn() {
@@ -228,6 +228,20 @@ function gameOver() {
     playSFX(sounds.splash);
     activeFishes.forEach(f => scene.remove(f));
     activeFishes = [];
+
+    setTimeout(() => {
+        const goScreen = document.getElementById('game-over-screen');
+        if (goScreen) {
+            goScreen.classList.add('fade-out');
+
+            const onFadeOut = () => {
+                goScreen.removeEventListener('animationend', onFadeOut);
+                setupStartScreen();
+                startButton.innerText = 'RETRY';
+            };
+            goScreen.addEventListener('animationend', onFadeOut);
+        }
+    }, 2000); // Wait 2 seconds before starting fade
 }
 
 // --- CONTROLS (kept local for simplicity) ---

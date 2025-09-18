@@ -51,7 +51,7 @@ export function bindUI() {
     }
 
     startButton.addEventListener('click', handleStart);
-    restartButton.addEventListener('click', handleStart);
+    if (restartButton) restartButton.addEventListener('click', handleStart);
 
     return { startScreen, gameOverScreen, scoreContainer, streakContainer, scoreEl, streakEl, finalScoreEl, startButton, restartButton };
 }
@@ -69,7 +69,8 @@ export function showHUD() {
 }
 
 export function showGameOver() {
-    document.getElementById('game-over-screen').classList.remove('hidden');
+    const goScreen = document.getElementById('game-over-screen');
+    goScreen.classList.remove('hidden', 'fade-out');
     document.getElementById('score-container').classList.add('hidden');
     document.getElementById('streak-container').classList.add('hidden');
 }
