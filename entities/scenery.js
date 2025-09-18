@@ -139,7 +139,7 @@ export function createScenery() {
     const log = new THREE.Mesh(logGeo, darkBrownMat);
     log.name = "log";
     log.rotation.z = Math.PI / 2;
-    log.position.set(0, 2.7, 4);
+    log.position.set(0, 2.7, 1);
     group.add(log);
     const leftMountain = createMountainSide(true);
     const rightMountain = createMountainSide(false);

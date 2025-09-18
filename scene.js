@@ -45,4 +45,3 @@ export function mountRenderer(container) {
     container.appendChild(renderer.domElement);
     resizeRenderer();
 }
-

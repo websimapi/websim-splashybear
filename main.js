@@ -136,8 +136,8 @@ function refreshShowcase() {
     // Bear showcase
     showcaseBear = createBear(playerProgress.selectedBear);
     showcaseBear.name = 'showcase-bear';
-    showcaseBear.position.set(-1.8, 4, 3);
-    showcaseBear.rotation.set(0, Math.PI * 0.9, 0);
+    showcaseBear.position.set(0, 4.65, 0.8);
+    showcaseBear.rotation.set(0, 0, 0);
     scene.add(showcaseBear);
     // Fish showcase
     showcaseFish = createFish(scene, 0, playerProgress.selectedFish);
@@ -185,8 +185,7 @@ function startGame() {
     bear = createBear(playerProgress.selectedBear);
     scene.add(bear);
 
-    bear.position.set(0, 4, 4);
-    bear.rotation.set(0, Math.PI, 0);
+    bear.position.x = 0;
     updateUIValues({ score: gameState.score, streak: gameState.streak });
     showHUD();
     try { initAudio(); } catch (e) { /* ignore */ }
@@ -386,7 +385,7 @@ function animate() {
             }
         }
         // Update and resolve fishes
-        const catchZ = 3.2, failZ = 3.6;
+        const catchZ = -0.8, failZ = -0.4;
         for (let i = activeFishes.length - 1; i >= 0; i--) {
             const f = activeFishes[i];
             updateFish(f);
