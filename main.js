@@ -268,12 +268,15 @@ function handleGlobalKeyUp(event) {
     if (event.key === '`' || event.key === '~') {
         if (devConsoleButton) {
             devConsoleButton.classList.toggle('hidden');
-            // If we're showing it, reset its style and disable controls
+            const controls = getOrbitControls();
+            // If we're showing it, reset its style and ensure controls are disabled initially
             if (!devConsoleButton.classList.contains('hidden')) {
-                 const controls = getOrbitControls();
                  if (controls) controls.enabled = false;
                  devConsoleButton.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
                  devConsoleButton.style.borderColor = 'white';
+            } else {
+                // If we're hiding it via keypress, also ensure controls are off
+                if (controls) controls.enabled = false;
             }
         }
     }

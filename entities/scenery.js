@@ -15,6 +15,22 @@ function createVoxel(x, y, z, w, h, d, mat) {
     return mesh;
 }
 
+function createTree(x, y, z) {
+    const g = new THREE.Group();
+    const trunkHeight = 1.5 + Math.random() * 1.5;
+    // position trunk voxel so its base is at y=0 of the group
+    g.add(createVoxel(0, trunkHeight / 2, 0, 0.5, trunkHeight, 0.5, treeTrunkMat));
+
+    // leaves are a collection of blocks on top of the trunk
+    const leavesY = trunkHeight;
+    g.add(createVoxel(0, leavesY + 0.75, 0, 1.5, 1.5, 1.5, treeLeavesMat));
+    g.add(createVoxel(0.5, leavesY + 0.4, 0.3, 1.2, 1.2, 1.2, treeLeavesMat));
+    g.add(createVoxel(-0.4, leavesY + 0.5, -0.5, 1.3, 1.3, 1.3, treeLeavesMat));
+
+    g.position.set(x, y, z);
+    return g;
+}
+
 function createMountainSide(isLeft) {
     const group = new THREE.Group();
     const sign = isLeft ? -1 : 1;
@@ -45,16 +61,6 @@ function createMountainSide(isLeft) {
     return group;
 }
 
-function createTree(x, y, z) {
-    const group = new THREE.Group();
-    const trunkHeight = 1 + Math.random();
-    const leavesHeight = 2 + Math.random() * 2;
-    group.add(createVoxel(0, trunkHeight/2, 0, 0.5, trunkHeight, 0.5, treeTrunkMat));
-    group.add(createVoxel(0, trunkHeight + leavesHeight/2 - 0.5, 0, 1.5, leavesHeight, 1.5, treeLeavesMat));
-    group.position.set(x, y, z);
-    return group;
-}
-
 /* simple bush: chunky voxel blob */
 function createBush(x, y, z) {
     const g = new THREE.Group();
@@ -72,13 +78,18 @@ export function createScenery() {
     const waterWidth = 8;
     const riverLength = 30;
     const cliffEdgeZ = 2.5;
-    const riverBedY = 1.9; // Water is at Y=2.0, banks at Y=2.1. Put this just under water.
+    const riverBedY = 1.8; // Water is at Y=2.0, banks at Y=2.1. Put this just under water.
 
     const riverBedGeo = new THREE.PlaneGeometry(waterWidth, riverLength);
     const riverBed = new THREE.Mesh(riverBedGeo, sandMat);
     riverBed.rotation.x = -Math.PI / 2;
     riverBed.position.set(0, riverBedY, cliffEdgeZ - riverLength / 2);
     group.add(riverBed);
+
+    // Add a rock base under the river to connect to the waterfall cliff
+    const riverBaseThickness = 1.0;
+    const riverBase = createVoxel(0, riverBedY - riverBaseThickness / 2, cliffEdgeZ - riverLength / 2, waterWidth, riverBaseThickness, riverLength, rockMat);
+    group.add(riverBase);
 
     // Ground at the bottom of the waterfall
     const waterfallBottomY = -18.1;
