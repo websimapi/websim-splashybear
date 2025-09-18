@@ -113,24 +113,32 @@ export function createScenery() {
     const groundR = createVoxel( 7, groundY - groundThickness/2, -8, 6, groundThickness, 24, grassMat);
     group.add(groundL, groundR);
 
-    // Adjusted tree/bush positions to be on the grass banks (x is between +/-4 and +/-10)
-    group.add(createTree(-7, groundY, 0));
-    group.add(createTree(-8, groundY, -5));
-    group.add(createTree(-6, groundY, -10));
-    group.add(createTree(7, groundY, -2));
-    group.add(createTree(9, groundY, 2));
-    group.add(createTree(8, groundY, -8));
+    // Dynamic Tree and Bush Placement
+    const bankWidth = 6;
+    const bankLength = 24;
+    const numTrees = 25;
+    for (let i = 0; i < numTrees; i++) {
+        const side = Math.random() < 0.5 ? -1 : 1;
+        // Position on the grass banks, avoiding the absolute edges and river.
+        // The river is between x=-4 and x=4. Tree leaves are 1.5 wide. Bushes are ~1.2 wide.
+        // We want x to be > 4 + (leaf_width/2) = 4.75. Let's start at 5.
+        // The bank is from x=4 to x=10.
+        const x = side * (5.0 + Math.random() * (bankWidth - 1.5)); // Place between 5 and 9.5 from center
+        const z = -8 - (bankLength / 2) + 0.5 + Math.random() * (bankLength - 1);
+        group.add(createTree(x, groundY, z));
 
-    for (let i=0;i<12;i++){ const z=-26-Math.random()*24, x=(Math.random()<0.5?-12:12)+(Math.random()*4-2), w=4+Math.random()*6, h=1.5+Math.random()*2.5, d=5+Math.random()*8; group.add(createVoxel(x, 1.2-Math.random()*1.5, z, w, h, d, rockMat)); }
-    // additional dense forest scatter
-    for (let i = 0; i < 6; i++) {
-        const z = -12 + Math.random() * 18;
-        group.add(createTree(-7 - Math.random()*2, groundY, z));
-        group.add(createTree( 7 + Math.random()*2, groundY, z + (Math.random()-0.5)*2));
-        if (Math.random() > 0.6) group.add(createBush(-7.2 - Math.random()*2, groundY, z + Math.random()*2-1));
-        if (Math.random() > 0.6) group.add(createBush( 7.2 + Math.random()*2, groundY, z + Math.random()*2-1));
+        // Occasionally add a bush near a tree
+        if (Math.random() > 0.65) {
+            const bushX = x + (Math.random() - 0.5) * 2;
+            const bushZ = z + (Math.random() - 0.5) * 2;
+            // Clamp bush X to stay on the bank
+            const clampedBushX = side * Math.max(5.0, Math.min(Math.abs(bushX), 10.0 - 0.6));
+            group.add(createBush(clampedBushX, groundY, bushZ));
+        }
     }
 
+    for (let i=0;i<12;i++){ const z=-26-Math.random()*24, x=(Math.random()<0.5?-12:12)+(Math.random()*4-2), w=4+Math.random()*6, h=1.5+Math.random()*2.5, d=5+Math.random()*8; group.add(createVoxel(x, 1.2-Math.random()*1.5, z, w, h, d, rockMat)); }
+    
     // --- Distant Terrain Generation ---
     const distantTerrainGroup = new THREE.Group();
     const terrainColors = [
@@ -169,6 +177,54 @@ export function createScenery() {
              distantTerrainGroup.add(secondaryChunk);
         }
     }
+
+    // Add higher mountain peaks to fill out the top
+    for (let i = 0; i < 60; i++) {
+        const z = -100 - (Math.random() * 120); // Focus on the further back area
+        const side = Math.random() < 0.5 ? -1 : 1;
+        const x = side * (25 + Math.random() * 80); // Place them wide
+
+        const w = 15 + Math.random() * 40;
+        const d = 15 + Math.random() * 40;
+        const h = 40 + Math.random() * 60; // Taller chunks for peaks
+
+        // Place these chunks higher up to form the top of the mountains
+        const y = 10 + h / 2;
+
+        const mat = terrainColors[Math.floor(Math.random() * terrainColors.length)];
+        const peakChunk = createVoxel(x, y, z, w, h, d, mat);
+        distantTerrainGroup.add(peakChunk);
+    }
+    
+    // Add expansive grassy terrain on top of mountains
+    for (let i = 0; i < 120; i++) {
+        const side = Math.random() < 0.5 ? -1 : 1;
+        const z = -40 - (Math.random() * 100);
+        const x = side * (12 + Math.random() * 50);
+
+        const w = 5 + Math.random() * 15;
+        const d = 5 + Math.random() * 15;
+        const h = 0.5 + Math.random() * 4;
+        
+        // Find a plausible y position by raycasting down, or just place them higher up
+        const y = 15 + Math.random() * 30;
+
+        const mat = terrainColors[Math.floor(Math.random() * 2)]; // grassMat or rockMat
+        const grassChunk = createVoxel(x, y, z, w, h, d, mat);
+        distantTerrainGroup.add(grassChunk);
+
+        // Add some detail on top of this new terrain
+        if (Math.random() > 0.7) {
+            const detailX = x + (Math.random() - 0.5) * w;
+            const detailZ = z + (Math.random() - 0.5) * d;
+            if (Math.random() > 0.4) {
+                distantTerrainGroup.add(createTree(detailX, y + h / 2, detailZ));
+            } else {
+                distantTerrainGroup.add(createBush(detailX, y + h / 2, detailZ));
+            }
+        }
+    }
+
     group.add(distantTerrainGroup);
 
     return group;
