@@ -74,6 +74,8 @@ canvas {
     justify-content: center;
     align-items: center;
     pointer-events: all;
+    padding-bottom: 20px;
+    box-sizing: border-box;
 }
 
 h1 {
@@ -85,7 +87,7 @@ h1 {
 #game-logo {
     width: 80%;
     max-width: 500px;
-    margin-bottom: 20px;
+    margin-bottom: 10px;
     opacity: 1;
     transition: opacity 1.2s ease-out;
     animation: fadeOutLogo 1.2s ease-out 2s forwards;
@@ -101,7 +103,7 @@ h1 {
     position: relative;
     width: 90%;
     max-width: 600px;
-    margin-bottom: 30px;
+    margin-bottom: 15px;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -227,6 +229,10 @@ p {
     font-size: 1.2em;
     margin-top: 0;
     max-width: 90%;
+}
+
+#start-button-container {
+    flex-shrink: 0;
 }
 
 button {
