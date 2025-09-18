@@ -6,6 +6,7 @@ const treeTrunkMat = new THREE.MeshLambertMaterial({ color: 0x654321 });
 const treeLeavesMat = new THREE.MeshLambertMaterial({ color: 0x228B22 });
 const grassMat = new THREE.MeshLambertMaterial({ color: 0x2e8b57 });
 const bushMat = new THREE.MeshLambertMaterial({ color: 0x3cb371 });
+const sandMat = new THREE.MeshLambertMaterial({ color: 0xd2b48c }); // tan/sand color
 
 function createVoxel(x, y, z, w, h, d, mat) {
     const geo = new THREE.BoxGeometry(w, h, d);
@@ -66,6 +67,35 @@ function createBush(x, y, z) {
 
 export function createScenery() {
     const group = new THREE.Group();
+
+    // Riverbed - add this first to be under the water and other objects.
+    const waterWidth = 8;
+    const riverLength = 30;
+    const cliffEdgeZ = 2.5;
+    const riverBedY = 1.9; // Water is at Y=2.0, banks at Y=2.1. Put this just under water.
+
+    const riverBedGeo = new THREE.PlaneGeometry(waterWidth, riverLength);
+    const riverBed = new THREE.Mesh(riverBedGeo, sandMat);
+    riverBed.rotation.x = -Math.PI / 2;
+    riverBed.position.set(0, riverBedY, cliffEdgeZ - riverLength / 2);
+    group.add(riverBed);
+
+    // Ground at the bottom of the waterfall
+    const waterfallBottomY = -18.1;
+    const bottomGroundGeo = new THREE.PlaneGeometry(12, 15);
+    const bottomGround = new THREE.Mesh(bottomGroundGeo, sandMat);
+    bottomGround.rotation.x = -Math.PI / 2;
+    bottomGround.position.set(0, waterfallBottomY, cliffEdgeZ + 7.5); // Start at cliff edge, extend forward
+    group.add(bottomGround);
+
+    // Cliff face behind waterfall
+    // Water is at z=2.5, from y=2 to y=-18. This wall sits behind it (z < 2.5).
+    group.add(createVoxel(0, -12.5, 1.8, 10, 25, 1.2, rockMat)); // Main back wall (moved behind waterfall and down)
+    group.add(createVoxel(3, -10, 1.6, 4, 8, 1, rockMat)); // Ledge/variation (moved down)
+    group.add(createVoxel(-4, -6, 1.7, 3, 5, 0.8, rockMat)); // (moved down)
+    group.add(createVoxel(-2, -20, 1.5, 5, 7, 1, rockMat)); // (moved down)
+    group.add(createVoxel(2, -3.5, 1.8, 6, 3, 1, rockMat)); // top edge (moved down)
+
     const logGeo = new THREE.CylinderGeometry(0.7, 0.7, 9, 8);
     const log = new THREE.Mesh(logGeo, darkBrownMat);
     log.name = "log";
@@ -82,7 +112,7 @@ export function createScenery() {
     const groundL = createVoxel(-7, groundY - groundThickness/2, -8, 6, groundThickness, 24, grassMat);
     const groundR = createVoxel( 7, groundY - groundThickness/2, -8, 6, groundThickness, 24, grassMat);
     group.add(groundL, groundR);
-    
+
     // Adjusted tree/bush positions to be on the grass banks (x is between +/-4 and +/-10)
     group.add(createTree(-7, groundY, 0));
     group.add(createTree(-8, groundY, -5));
@@ -90,7 +120,7 @@ export function createScenery() {
     group.add(createTree(7, groundY, -2));
     group.add(createTree(9, groundY, 2));
     group.add(createTree(8, groundY, -8));
-    
+
     for (let i=0;i<12;i++){ const z=-26-Math.random()*24, x=(Math.random()<0.5?-12:12)+(Math.random()*4-2), w=4+Math.random()*6, h=1.5+Math.random()*2.5, d=5+Math.random()*8; group.add(createVoxel(x, 1.2-Math.random()*1.5, z, w, h, d, rockMat)); }
     // additional dense forest scatter
     for (let i = 0; i < 6; i++) {
@@ -100,7 +130,7 @@ export function createScenery() {
         if (Math.random() > 0.6) group.add(createBush(-7.2 - Math.random()*2, groundY, z + Math.random()*2-1));
         if (Math.random() > 0.6) group.add(createBush( 7.2 + Math.random()*2, groundY, z + Math.random()*2-1));
     }
-    
+
     // --- Distant Terrain Generation ---
     const distantTerrainGroup = new THREE.Group();
     const terrainColors = [
@@ -113,14 +143,14 @@ export function createScenery() {
     for (let i = 0; i < 150; i++) {
         const z = -50 - (Math.random() * 150); // Position from z=-50 to z=-200
         const isFar = z < -100;
-        
+
         const side = Math.random() < 0.5 ? -1 : 1;
         const x = side * (15 + Math.random() * 60); // Place them wider than the immediate banks
 
         const w = 8 + Math.random() * (isFar ? 35 : 18);
         const d = 8 + Math.random() * (isFar ? 35 : 18);
         const h = 5 + Math.random() * (isFar ? 50 : 25);
-        
+
         const y = -15 + h / 2; // Position them lower down to look like mountains rising
 
         const mat = terrainColors[Math.floor(Math.random() * terrainColors.length)];
