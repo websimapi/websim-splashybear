@@ -8,6 +8,10 @@ const eyeMat = new THREE.MeshLambertMaterial({ color: 0x111111 });
 const scleraMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
 const pupilMat = new THREE.MeshLambertMaterial({ color: 0x000000 });
 
+// Vitiligo fish materials
+const vitiligoBodyMat = new THREE.MeshLambertMaterial({ color: 0x555555 });
+const vitiligoPatchMat = new THREE.MeshLambertMaterial({ color: 0xf0f0f0 });
+
 function createVoxel(x, y, z, w, h, d, mat) {
     const geo = new THREE.BoxGeometry(w, h, d);
     const mesh = new THREE.Mesh(geo, mat);
@@ -15,9 +19,12 @@ function createVoxel(x, y, z, w, h, d, mat) {
     return mesh;
 }
 
-export function createFish(scene, score = 0) {
+export function createFish(scene, score = 0, type = 'classic', opts = {}) {
     const group = new THREE.Group();
     group.name = 'fish';
+
+    const isVitiligo = type === 'vitiligo';
+    const bodyMat = isVitiligo ? vitiligoBodyMat : fishMat;
     
     // body (tapered along +Z, nose forward)
     const segments = 6, length = 3.0, maxW = 0.8, maxH = 0.9;
@@ -27,7 +34,13 @@ export function createFish(scene, score = 0) {
         const w = THREE.MathUtils.lerp(maxW, 0.35, t);
         const h = THREE.MathUtils.lerp(maxH, 0.4, t);
         const z = -0.4 + t * length;
-        const bodySeg = createVoxel(0, 0, z, w, h, length / segments, fishMat);
+        
+        let segMat = bodyMat;
+        if (isVitiligo && (i === 1 || i === 4)) { // Create patches on some segments
+            segMat = vitiligoPatchMat;
+        }
+
+        const bodySeg = createVoxel(0, 0, z, w, h, length / segments, segMat);
         group.add(bodySeg); segmentsArr.push({ mesh: bodySeg, baseX: 0, phase: t });
         const bellyH = h * 0.25;
         group.add(createVoxel(0, -h * 0.3, z, w * 0.95, bellyH, (length / segments) * 0.98, bellyMat));
@@ -62,11 +75,11 @@ export function createFish(scene, score = 0) {
     // orient fish to face downstream (+Z), head leading
     group.rotation.y = Math.PI;
     const riverWidth = 7;
-    const xPos = (Math.random() - 0.5) * riverWidth;
+    const xPos = (typeof opts.x === 'number') ? THREE.MathUtils.clamp(opts.x, -riverWidth/2, riverWidth/2) : (Math.random() - 0.5) * riverWidth;
     const baseY = 2.1;
     group.position.set(xPos, baseY, -24);
-    const speedMultiplier = 1 + (score / 500);
-    const swimSpeed = (0.05 + Math.random() * 0.05) * speedMultiplier;
+    const speedMultiplier = 1 + (score / 700); // slightly lowered for smoother pacing
+    const swimSpeed = (0.045 + Math.random() * 0.045) * speedMultiplier;
     group.userData = {
         velocity: new THREE.Vector3(0, 0, swimSpeed),
         initialX: xPos, baseY,
@@ -76,7 +89,9 @@ export function createFish(scene, score = 0) {
         baseRotY: group.rotation.y,
         prevX: xPos,
         tailV, tailH, dorsal, anal, pectoralL, pectoralR,
-        segments: segmentsArr, wiggleAmp: 0.22, wiggleFreq: 2.6
+        segments: segmentsArr, wiggleAmp: 0.22, wiggleFreq: 2.6,
+        pattern: opts.pattern || ['sine','zigzag','drift'][Math.floor(Math.random()*3)],
+        drift: 0
     };
     scene.add(group);
     return group;
@@ -89,8 +104,21 @@ export function updateFish(fish) {
     fish.position.add(ud.velocity);
     // lateral weave
     ud.swimTimer += 0.1;
-    const weave = Math.sin(ud.swimTimer * ud.swimFrequency) * ud.swimAmplitude;
-    fish.position.x = ud.initialX + weave;
+    let weave = 0;
+    if (ud.pattern === 'sine') {
+        weave = Math.sin(ud.swimTimer * ud.swimFrequency) * ud.swimAmplitude;
+    } else if (ud.pattern === 'zigzag') {
+        const tri = 2 / Math.PI * Math.asin(Math.sin(ud.swimTimer * ud.swimFrequency));
+        weave = tri * ud.swimAmplitude * 1.2;
+    } else { // drift
+        ud.drift += (Math.random() - 0.5) * 0.02;
+        ud.drift = THREE.MathUtils.clamp(ud.drift, -0.6, 0.6);
+        weave = ud.drift;
+    }
+    // lateral weave target
+    let targetX = ud.initialX + weave;
+    // smooth towards target for less jitter
+    fish.position.x = THREE.MathUtils.lerp(fish.position.x, targetX, 0.18);
     // vertical bob for fluidity - reduced amplitude to prevent clipping through water surface
     const bob = Math.sin(ud.swimTimer * 0.8 + 1.3) * 0.04 + Math.sin(ud.swimTimer * 1.7) * 0.03;
     fish.position.y = ud.baseY + bob;

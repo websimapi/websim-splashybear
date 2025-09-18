@@ -3,6 +3,10 @@ import * as THREE from 'three';
 const brownMat = new THREE.MeshLambertMaterial({ color: 0x8d5524 });
 const darkBrownMat = new THREE.MeshLambertMaterial({ color: 0x4a2d1e });
 
+// Grizzly materials
+const grizzlyMat = new THREE.MeshLambertMaterial({ color: 0x6e4a2e });
+const darkGrizzlyMat = new THREE.MeshLambertMaterial({ color: 0x3b2818 });
+
 export const BEAR_X_LIMIT = 3.5;
 const BEAR_MOVE_SPEED = 0.08;
 const BEAR_WOBBLE_AMOUNT = 0.2;
@@ -14,19 +18,30 @@ function createVoxel(x, y, z, w, h, d, mat) {
     return mesh;
 }
 
-export function createBear() {
+export function createBear(type = 'splashy') {
     const group = new THREE.Group();
-    group.add(createVoxel(0, 0, 0, 1.5, 1.5, 1, brownMat));
-    group.add(createVoxel(0, 1.25, 0, 1, 1, 1, brownMat));
-    group.add(createVoxel(-0.4, 1.9, 0, 0.3, 0.3, 0.3, darkBrownMat));
-    group.add(createVoxel(0.4, 1.9, 0, 0.3, 0.3, 0.3, darkBrownMat));
-    group.add(createVoxel(0, 1.1, 0.5, 0.5, 0.4, 0.3, darkBrownMat));
-    group.add(createVoxel(-0.5, -1, 0, 0.5, 0.5, 0.5, brownMat));
-    group.add(createVoxel(0.5, -1, 0, 0.5, 0.5, 0.5, brownMat));
+
+    const bodyMat = type === 'grizzly' ? grizzlyMat : brownMat;
+    const accentMat = type === 'grizzly' ? darkGrizzlyMat : darkBrownMat;
+
+    group.add(createVoxel(0, 0, 0, 1.5, 1.5, 1, bodyMat));
+    group.add(createVoxel(0, 1.25, 0, 1, 1, 1, bodyMat));
+    group.add(createVoxel(-0.4, 1.9, 0, 0.3, 0.3, 0.3, accentMat));
+    group.add(createVoxel(0.4, 1.9, 0, 0.3, 0.3, 0.3, accentMat));
+    group.add(createVoxel(0, 1.1, 0.5, 0.5, 0.4, 0.3, accentMat));
+    group.add(createVoxel(-0.5, -1, 0, 0.5, 0.5, 0.5, bodyMat));
+    group.add(createVoxel(0.5, -1, 0, 0.5, 0.5, 0.5, bodyMat));
     group.position.set(0, 4, 4);
     group.rotation.y = Math.PI;
     group.userData.targetX = 0;
     group.userData.wobbleTimer = 0;
+    // add simple translucent net in front of the log
+    const netWidth = 2.2;
+    const net = new THREE.Mesh(new THREE.BoxGeometry(netWidth, 0.6, 0.1), new THREE.MeshLambertMaterial({ color: 0xffffff, transparent: true, opacity: 0.5 }));
+    net.name = 'net';
+    net.position.set(0, -1.3, -0.7);
+    group.add(net);
+    group.userData.net = net; group.userData.netWidth = netWidth;
     return group;
 }
 
