@@ -31,13 +31,32 @@ export function createBear(type = 'splashy') {
     group.add(createVoxel(0, 1.1, 0.5, 0.5, 0.4, 0.3, accentMat));
     group.add(createVoxel(-0.5, -1, 0, 0.5, 0.5, 0.5, bodyMat));
     group.add(createVoxel(0.5, -1, 0, 0.5, 0.5, 0.5, bodyMat));
+
+    if (type === 'splashy') {
+        const armY = 0.1, armZ = -0.3;
+        const armWidth = 0.4, armHeight = 1.0, armDepth = 0.4;
+        
+        // Left Arm
+        const leftArm = createVoxel(-0.95, armY, armZ, armWidth, armHeight, armDepth, bodyMat);
+        leftArm.rotation.z = -Math.PI / 16;
+        group.add(leftArm);
+
+        // Right Arm
+        const rightArm = createVoxel(0.95, armY, armZ, armWidth, armHeight, armDepth, bodyMat);
+        rightArm.rotation.z = Math.PI / 16;
+        group.add(rightArm);
+    }
+    
     group.position.set(0, 4.65, 0.8); // Adjusted Y to be on top of the log.
     group.rotation.y = Math.PI;
     group.userData.targetX = 0;
     group.userData.wobbleTimer = 0;
+    
     // add simple translucent net in front of the log
     const netWidth = 2.2;
-    const net = new THREE.Mesh(new THREE.BoxGeometry(netWidth, 0.6, 0.1), new THREE.MeshLambertMaterial({ color: 0xffffff, transparent: true, opacity: 0.5 }));
+    const netMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff, transparent: true, opacity: 0.5 });
+    netMaterial.visible = false; // Hide the net visually
+    const net = new THREE.Mesh(new THREE.BoxGeometry(netWidth, 0.6, 0.1), netMaterial);
     net.name = 'net';
     net.position.set(0, -1.3, -0.7);
     group.add(net);
