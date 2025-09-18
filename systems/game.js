@@ -18,6 +18,7 @@ const { startButton } = bindUI();
 let playerProgress = getPlayerProgress();
 export let gameState = { current: 'IDLE', score: 0, streak: 1, idleAnimTimer: 0 };
 const gravity = new THREE.Vector3(0, -0.05, 0);
+let isFirstLoad = true;
 
 function refreshShowcase() {
     if (showcaseBear) { scene.remove(showcaseBear); showcaseBear = null; }
@@ -29,6 +30,7 @@ function refreshShowcase() {
     // Bear showcase
     showcaseBear = createBear(playerProgress.selectedBear);
     showcaseBear.name = 'showcase-bear';
+    showcaseBear.userData.isShowcase = true; // Add a flag to identify the showcase bear
     showcaseBear.position.set(0, 4.65, 0.8);
     showcaseBear.rotation.set(0, 0, 0); // Face camera
     scene.add(showcaseBear);
@@ -55,7 +57,14 @@ function refreshShowcase() {
 
 function setupStartScreen() {
     gameState.current = 'IDLE';
-    if(bear) bear.visible = false;
+    scene.children.forEach(child => {
+        if (child.name !== 'showcase-bear' && child.userData && !child.userData.isStatic) {
+             if(child.name === 'fish' || child.name === 'bear') {
+                child.visible = false;
+             }
+        }
+    });
+
     activeFishes.forEach(f => scene.remove(f));
     activeFishes = [];
 
@@ -80,7 +89,8 @@ function setupStartScreen() {
         refreshShowcase();
     });
     refreshShowcase();
-    showStart();
+    showStart(isFirstLoad);
+    isFirstLoad = false;
     startButton.innerText = 'START';
 }
 
@@ -95,6 +105,7 @@ function startGame() {
 
     if (bear) scene.remove(bear);
     bear = createBear(playerProgress.selectedBear);
+    bear.userData.isStatic = false; // Mark game objects
     scene.add(bear);
 
     bear.position.x = 0;

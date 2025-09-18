@@ -1,7 +1,7 @@
 body {
     margin: 0;
     overflow: hidden;
-    font-family: 'Arial', sans-serif;
+    font-family: 'Fredoka One', 'Arial', sans-serif;
     background-color: #333;
     color: white;
     user-select: none;
@@ -86,10 +86,10 @@ canvas {
     height: 100%;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: space-around;
     align-items: center;
     pointer-events: all;
-    padding-bottom: 20px;
+    padding: 2vh 0;
     box-sizing: border-box;
 }
 
@@ -117,8 +117,10 @@ h1 {
 
 #game-logo {
     width: 80%;
-    max-width: 500px;
-    margin-bottom: 10px;
+    max-width: 450px;
+    max-height: 25vh;
+    object-fit: contain;
+    margin-bottom: 1vh;
     opacity: 1;
     transition: opacity 1.2s ease-out;
     animation: fadeOutLogo 1.2s ease-out 2s forwards;
@@ -134,11 +136,13 @@ h1 {
     position: relative;
     width: 90%;
     max-width: 600px;
-    margin-bottom: 15px;
+    margin-bottom: 1vh;
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
-    min-height: 250px; /* Adjust as needed */
+    flex-shrink: 1;
+    overflow-y: auto;
 }
 
 #unlocks-container {
@@ -239,7 +243,7 @@ h1 {
     gap: 20px;
     justify-content: center;
     align-items: center;
-    margin: 10px 0 30px;
+    margin: 1vh 0;
 }
 
 .selection-header {

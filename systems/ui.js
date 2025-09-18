@@ -75,7 +75,7 @@ export function showGameOver() {
     document.getElementById('streak-container').classList.add('hidden');
 }
 
-export function showStart() {
+export function showStart(isFirstLoad = false) {
     document.getElementById('start-screen').classList.remove('hidden');
     document.getElementById('game-over-screen').classList.add('hidden');
     document.getElementById('score-container').classList.add('hidden');
@@ -87,18 +87,23 @@ export function showStart() {
     if (unlocks) unlocks.classList.add('hidden');
     const logo = document.getElementById('game-logo');
     if (logo) {
-        logo.classList.remove('fade-out');
-        logo.style.animation = 'none';
-        void logo.offsetHeight; // Trigger reflow to restart animation
-        logo.style.animation = '';
-        logo.style.opacity = '1';
+        if (isFirstLoad) {
+            logo.classList.remove('fade-out', 'hidden');
+            logo.style.animation = 'none';
+            void logo.offsetHeight; // Trigger reflow to restart animation
+            logo.style.animation = '';
+            logo.style.opacity = '1';
 
-        clearTimeout(fadeTimeout);
-        fadeTimeout = setTimeout(() => {
-             if (logo && !logo.classList.contains('fade-out')) {
-                logo.classList.add('fade-out');
-             }
-        }, 2000);
+            clearTimeout(fadeTimeout);
+            fadeTimeout = setTimeout(() => {
+                 if (logo && !logo.classList.contains('fade-out')) {
+                    logo.classList.add('fade-out');
+                 }
+            }, 2000);
+        } else {
+            clearTimeout(fadeTimeout);
+            logo.classList.add('hidden');
+        }
     }
 }
 

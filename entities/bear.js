@@ -32,22 +32,20 @@ export function createBear(type = 'splashy') {
     group.add(createVoxel(-0.5, -1, 0, 0.5, 0.5, 0.5, bodyMat));
     group.add(createVoxel(0.5, -1, 0, 0.5, 0.5, 0.5, bodyMat));
 
-    if (type === 'splashy') {
-        const armY = 0.1, armZ = -0.3;
-        const armWidth = 0.4, armHeight = 1.0, armDepth = 0.4;
-        
-        // Left Arm
-        const leftArm = createVoxel(-0.95, armY, armZ, armWidth, armHeight, armDepth, bodyMat);
-        leftArm.name = 'leftArm';
-        leftArm.rotation.z = -Math.PI / 16;
-        group.add(leftArm);
+    const armY = 0.1, armZ = -0.3;
+    const armWidth = 0.4, armHeight = 1.0, armDepth = 0.4;
+    
+    // Left Arm
+    const leftArm = createVoxel(-0.95, armY, armZ, armWidth, armHeight, armDepth, bodyMat);
+    leftArm.name = 'leftArm';
+    leftArm.rotation.z = -Math.PI / 16;
+    group.add(leftArm);
 
-        // Right Arm
-        const rightArm = createVoxel(0.95, armY, armZ, armWidth, armHeight, armDepth, bodyMat);
-        rightArm.name = 'rightArm';
-        rightArm.rotation.z = Math.PI / 16;
-        group.add(rightArm);
-    }
+    // Right Arm
+    const rightArm = createVoxel(0.95, armY, armZ, armWidth, armHeight, armDepth, bodyMat);
+    rightArm.name = 'rightArm';
+    rightArm.rotation.z = Math.PI / 16;
+    group.add(rightArm);
     
     group.position.set(0, 4.65, 0.8); // Adjusted Y to be on top of the log.
     group.rotation.y = Math.PI;
