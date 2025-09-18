@@ -83,12 +83,12 @@ export function createScenery() {
     const riverBedGeo = new THREE.PlaneGeometry(waterWidth, riverLength);
     const riverBed = new THREE.Mesh(riverBedGeo, sandMat);
     riverBed.rotation.x = -Math.PI / 2;
-    riverBed.position.set(0, riverBedY, cliffEdgeZ - riverLength / 2);
+    riverBed.position.set(0, riverBedY, cliffEdgeZ - riverLength / 2 - 0.5);
     group.add(riverBed);
 
     // Add a rock base under the river to connect to the waterfall cliff
     const riverBaseThickness = 1.0;
-    const riverBase = createVoxel(0, riverBedY - riverBaseThickness / 2, cliffEdgeZ - riverLength / 2, waterWidth, riverBaseThickness, riverLength, rockMat);
+    const riverBase = createVoxel(0, riverBedY - riverBaseThickness / 2 - 1.0, cliffEdgeZ - riverLength / 2 - 0.5, waterWidth, riverBaseThickness, riverLength, rockMat);
     group.add(riverBase);
 
     // Ground at the bottom of the waterfall
