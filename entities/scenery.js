@@ -86,6 +86,34 @@ export function createScenery() {
     riverBed.position.set(0, riverBedY, cliffEdgeZ - riverLength / 2 - 0.5);
     group.add(riverBed);
 
+    // Add river banks (walls)
+    const bankWallHeight = 22; // Make them deep
+    const bankWallThickness = 1;
+    const bankWallY = riverBedY - (bankWallHeight / 2) + 0.1;
+    const bankWallZ = cliffEdgeZ - riverLength / 2 - 0.5;
+
+    const leftBankWall = createVoxel(
+        -waterWidth / 2 - bankWallThickness / 2, 
+        bankWallY, 
+        bankWallZ, 
+        bankWallThickness, 
+        bankWallHeight, 
+        riverLength, 
+        rockMat
+    );
+    group.add(leftBankWall);
+
+    const rightBankWall = createVoxel(
+        waterWidth / 2 + bankWallThickness / 2, 
+        bankWallY, 
+        bankWallZ, 
+        bankWallThickness, 
+        bankWallHeight, 
+        riverLength, 
+        rockMat
+    );
+    group.add(rightBankWall);
+
     // Add a rock base under the river to connect to the waterfall cliff
     const riverBaseThickness = 1.0;
     const riverBase = createVoxel(0, riverBedY - riverBaseThickness / 2 - 1.0, cliffEdgeZ - riverLength / 2 - 0.5, waterWidth, riverBaseThickness, riverLength, rockMat);
@@ -123,6 +151,14 @@ export function createScenery() {
     const groundL = createVoxel(-7, groundY - groundThickness/2, -8, 6, groundThickness, 24, grassMat);
     const groundR = createVoxel( 7, groundY - groundThickness/2, -8, 6, groundThickness, 24, grassMat);
     group.add(groundL, groundR);
+
+    // Add rock walls underneath the grass shelves to connect them to the mountains
+    const groundWallHeight = 22; // Match river bank wall height for consistency
+    const groundWallY = (groundY - groundThickness / 2) - (groundWallHeight / 2); // Position it right under the grass
+    
+    const groundWallL = createVoxel(-7, groundWallY, -8, 6, groundWallHeight, 24, rockMat);
+    const groundWallR = createVoxel(7, groundWallY, -8, 6, groundWallHeight, 24, rockMat);
+    group.add(groundWallL, groundWallR);
 
     // Dynamic Tree and Bush Placement
     const bankWidth = 6;
