@@ -110,16 +110,16 @@ export function createScenery() {
         new THREE.MeshLambertMaterial({ color: 0x707070 })  // Darker rock
     ];
 
-    for (let i = 0; i < 80; i++) {
-        const z = -40 - (Math.random() * 120); // Position from z=-40 to z=-160
-        const isFar = z < -80;
+    for (let i = 0; i < 150; i++) {
+        const z = -50 - (Math.random() * 150); // Position from z=-50 to z=-200
+        const isFar = z < -100;
         
         const side = Math.random() < 0.5 ? -1 : 1;
-        const x = side * (10 + Math.random() * 40); // Place them wider than the immediate banks
+        const x = side * (15 + Math.random() * 60); // Place them wider than the immediate banks
 
-        const w = 8 + Math.random() * (isFar ? 30 : 15);
-        const d = 8 + Math.random() * (isFar ? 30 : 15);
-        const h = 5 + Math.random() * (isFar ? 40 : 20);
+        const w = 8 + Math.random() * (isFar ? 35 : 18);
+        const d = 8 + Math.random() * (isFar ? 35 : 18);
+        const h = 5 + Math.random() * (isFar ? 50 : 25);
         
         const y = -15 + h / 2; // Position them lower down to look like mountains rising
 
