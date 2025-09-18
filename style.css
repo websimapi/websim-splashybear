@@ -88,11 +88,31 @@ h1 {
     margin-bottom: 20px;
     opacity: 1;
     transition: opacity 1.2s ease-out;
+    animation: fadeOutLogo 1.2s ease-out 2s forwards;
+}
+
+@keyframes fadeOutLogo {
+    to { opacity: 0; }
 }
 
 #game-logo.fade-out { opacity: 0; }
 
+#start-screen-content {
+    position: relative;
+    width: 90%;
+    max-width: 600px;
+    margin-bottom: 30px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 250px; /* Adjust as needed */
+}
+
 #unlocks-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
     display: flex;
     flex-direction: column;
     justify-content: center;

@@ -10,6 +10,8 @@ import { BEARS, FISH, getPlayerProgress, savePlayerProgress } from './unlocks.js
 
 // --- GAME OBJECTS (refactored) ---
 let bear = null;
+let showcaseBear = null; // added
+let showcaseFish = null; // added
 const scenery = createScenery();
 scene.add(scenery);
 const waterfall = createWaterfall();
@@ -59,6 +61,23 @@ const {
 let playerProgress = getPlayerProgress();
 let gameState = { current: 'IDLE', score: 0, streak: 1 };
 
+function refreshShowcase() {
+    if (showcaseBear) { scene.remove(showcaseBear); showcaseBear = null; }
+    if (showcaseFish) { scene.remove(showcaseFish); showcaseFish = null; }
+    // Bear showcase
+    showcaseBear = createBear(playerProgress.selectedBear);
+    showcaseBear.name = 'showcase-bear';
+    showcaseBear.position.set(-1.8, 4, 3);
+    showcaseBear.rotation.set(0, Math.PI * 0.9, 0);
+    scene.add(showcaseBear);
+    // Fish showcase
+    showcaseFish = createFish(scene, 0, playerProgress.selectedFish);
+    showcaseFish.name = 'showcase-fish';
+    showcaseFish.position.set(2.0, 2.3, -1.5);
+    if (showcaseFish.userData?.velocity) showcaseFish.userData.velocity.set(0, 0, 0);
+    if (showcaseFish.userData) showcaseFish.userData.swimAmplitude = 0;
+}
+
 function setupStartScreen() {
     gameState.current = 'IDLE';
     if(bear) bear.visible = false;
@@ -68,8 +87,10 @@ function setupStartScreen() {
         if (type === 'bear') playerProgress.selectedBear = id;
         if (type === 'fish') playerProgress.selectedFish = id;
         savePlayerProgress(playerProgress);
-        populateUnlocks(playerProgress, () => {}); // re-render to show selection
+        populateUnlocks(playerProgress, () => {});
+        refreshShowcase(); // update 3D showcase to reflect new selection
     });
+    refreshShowcase();
     showStart();
 }
 setupStartScreen();
@@ -88,6 +109,8 @@ function getFishToSpawn() {
 
 function startGame() {
     gameState = { current: 'PLAYING', score: 0, streak: 1 };
+    if (showcaseBear) { scene.remove(showcaseBear); showcaseBear = null; }
+    if (showcaseFish) { scene.remove(showcaseFish); showcaseFish = null; }
     
     if (bear) scene.remove(bear);
     bear = createBear(playerProgress.selectedBear);
@@ -233,18 +256,6 @@ window.addEventListener('keyup', handleKeyUp);
 import { mountRenderer } from './scene.js';
 mountRenderer(document.getElementById('game-container'));
 window.addEventListener('resize', resizeRenderer);
-
-let showcaseFish = null;
-// create rotating showcase fish for title screen
-if (!showcaseFish) {
-    showcaseFish = createFish(scene, 0);
-    showcaseFish.name = 'showcase-fish';
-    showcaseFish.position.set(1.5, 2.3, -2);
-    showcaseFish.userData.velocity.set(0, 0, 0);
-    showcaseFish.userData.swimAmplitude = 0;
-}
-if (showcaseFish) showcaseFish.visible = false; // Hide showcase fish on start screen
-if (bear) bear.visible = false; // Hide main bear on start screen
 
 // --- GAME LOOP (trimmed) ---
 const gravity = new THREE.Vector3(0, -0.05, 0);

@@ -1,5 +1,7 @@
 import { BEARS, FISH } from '../unlocks.js';
 
+let fadeTimeout;
+
 export function bindUI() {
     const startScreen = document.getElementById('start-screen');
     const gameOverScreen = document.getElementById('game-over-screen');
@@ -22,6 +24,10 @@ export function bindUI() {
     const fishCategory = document.getElementById('fish-category');
 
     function openSelection(type) {
+        const logo = document.getElementById('game-logo');
+        if (logo) {
+            logo.classList.add('fade-out');
+        }
         selectionTitle.textContent = type === 'bear' ? 'Select Bear' : 'Select Fish';
         bearCategory.style.display = type === 'bear' ? 'block' : 'none';
         fishCategory.style.display = type === 'fish' ? 'block' : 'none';
@@ -81,9 +87,17 @@ export function showStart() {
     const logo = document.getElementById('game-logo');
     if (logo) {
         logo.classList.remove('fade-out');
+        logo.style.animation = 'none';
+        void logo.offsetHeight; // Trigger reflow to restart animation
+        logo.style.animation = '';
         logo.style.opacity = '1';
-        clearTimeout(window.__logoFadeTimer);
-        window.__logoFadeTimer = setTimeout(() => logo.classList.add('fade-out'), 3000);
+
+        clearTimeout(fadeTimeout);
+        fadeTimeout = setTimeout(() => {
+             if (logo && !logo.classList.contains('fade-out')) {
+                logo.classList.add('fade-out');
+             }
+        }, 2000);
     }
 }
 
