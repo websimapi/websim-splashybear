@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { scene, camera, renderer, resizeRenderer, createLights } from './scene.js';
+import { scene, camera, renderer, resizeRenderer, createLights, initOrbitControls, getOrbitControls } from './scene.js';
 import { createBear, updateBear, BEAR_X_LIMIT } from './entities/bear.js';
 import { createScenery } from './entities/scenery.js';
 import { createWaterfall, updateWaterfall } from './entities/waterfall.js';
@@ -57,6 +57,23 @@ const {
   startScreen, gameOverScreen, scoreContainer, streakContainer,
   scoreEl, streakEl, finalScoreEl, startButton, restartButton
 } = bindUI();
+
+// Dev console button
+const devConsoleButton = document.getElementById('dev-console-button');
+if (devConsoleButton) {
+    devConsoleButton.addEventListener('click', () => {
+        const controls = initOrbitControls();
+        controls.enabled = !controls.enabled;
+        
+        if (controls.enabled) {
+            devConsoleButton.style.backgroundColor = 'rgba(255, 0, 0, 0.7)';
+            devConsoleButton.style.borderColor = '#ff8080';
+        } else {
+            // Hide the button when dev mode is turned off
+            devConsoleButton.classList.add('hidden');
+        }
+    });
+}
 
 let playerProgress = getPlayerProgress();
 let gameState = { current: 'IDLE', score: 0, streak: 1 };
@@ -246,11 +263,28 @@ function handleKeyUp(event) {
     }
 }
 
+// Added key handler to show the dev button again
+function handleGlobalKeyUp(event) {
+    if (event.key === '`' || event.key === '~') {
+        if (devConsoleButton) {
+            devConsoleButton.classList.toggle('hidden');
+            // If we're showing it, reset its style and disable controls
+            if (!devConsoleButton.classList.contains('hidden')) {
+                 const controls = getOrbitControls();
+                 if (controls) controls.enabled = false;
+                 devConsoleButton.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
+                 devConsoleButton.style.borderColor = 'white';
+            }
+        }
+    }
+}
+
 window.addEventListener('pointerdown', onPointerDown);
 window.addEventListener('pointermove', onPointerMove);
 window.addEventListener('pointerup', onPointerUp);
 window.addEventListener('keydown', handleKeyDown);
 window.addEventListener('keyup', handleKeyUp);
+window.addEventListener('keyup', handleGlobalKeyUp); // Add new global listener
 
 // mount renderer and handle sizing
 import { mountRenderer } from './scene.js';
@@ -262,6 +296,12 @@ const gravity = new THREE.Vector3(0, -0.05, 0);
 
 function animate() {
     requestAnimationFrame(animate); // Ensure continuous rendering
+    
+    const controls = getOrbitControls();
+    if (controls?.enabled) {
+        controls.update();
+    }
+
     updateWaterfall(waterfall);
     if (gameState.current === 'PLAYING') {
         if (!bear) { // Added guard in case something goes wrong

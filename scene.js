@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 export const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87ceeb);
@@ -10,6 +11,20 @@ camera.lookAt(0, 2, 0);
 
 export const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+let controls;
+
+export function initOrbitControls() {
+    if (!controls) {
+        controls = new OrbitControls(camera, renderer.domElement);
+        controls.enabled = false;
+    }
+    return controls;
+}
+
+export function getOrbitControls() {
+    return controls;
+}
 
 export function resizeRenderer() {
     camera.aspect = window.innerWidth / window.innerHeight;
