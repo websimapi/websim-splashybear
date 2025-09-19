@@ -101,12 +101,23 @@ function bindModal() {
   const modal = document.getElementById('leaderboard-modal');
   const close = document.getElementById('lb-close');
   if (btn && modal && close) {
-    btn.addEventListener('click', ()=>{ renderLocal(); modal.classList.remove('hidden'); });
+    btn.addEventListener('click', ()=>{ renderLocal(); setActiveTab('local'); modal.classList.remove('hidden'); });
     close.addEventListener('click', ()=> { 
       modal.classList.add('hidden'); 
       window.dispatchEvent(new CustomEvent('leaderboard:closed'));
     });
   }
+}
+function setActiveTab(which='local') {
+  const localBtn = document.getElementById('lb-tab-local');
+  const globalBtn = document.getElementById('lb-tab-global');
+  const localList = document.getElementById('local-scores');
+  const globalList = document.getElementById('global-scores');
+  if (!localBtn || !globalBtn || !localList || !globalList) return;
+  localBtn.classList.toggle('is-active', which==='local');
+  globalBtn.classList.toggle('is-active', which==='global');
+  localList.classList.toggle('hidden', which!=='local');
+  globalList.classList.toggle('hidden', which!=='global');
 }
 function bindSubmit() {
   const submit = document.getElementById('submit-score-btn');
@@ -123,9 +134,14 @@ function bindSubmit() {
     document.getElementById('leaderboard-modal')?.classList.remove('hidden');
   });
 }
+function bindTabs() {
+  document.getElementById('lb-tab-local')?.addEventListener('click', ()=>{ renderLocal(); setActiveTab('local'); });
+  document.getElementById('lb-tab-global')?.addEventListener('click', async ()=>{ await subscribeGlobal(); setActiveTab('global'); });
+}
 window.addEventListener('DOMContentLoaded', () => {
   bindModal();
   bindSubmit();
+  bindTabs();
   renderLocal();
   subscribeGlobal();
 });

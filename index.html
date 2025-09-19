@@ -89,15 +89,13 @@
                 <h2>Leaderboard</h2>
                 <button id="lb-close">Close</button>
             </div>
+            <div class="lb-tabs">
+                <button id="lb-tab-local" class="lb-tab is-active">Local</button>
+                <button id="lb-tab-global" class="lb-tab">Global</button>
+            </div>
             <div class="lb-sections">
-                <div class="lb-section">
-                    <h3>Local</h3>
-                    <ol id="local-scores"></ol>
-                </div>
-                <div class="lb-section">
-                    <h3>Global</h3>
-                    <ol id="global-scores"></ol>
-                </div>
+                <ol id="local-scores"></ol>
+                <ol id="global-scores" class="hidden"></ol>
             </div>
             <div class="lb-footer">
                 <small>Submitting creates/updates a single row tied to your account containing JSON data.</small>

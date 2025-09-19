@@ -368,10 +368,16 @@ button:active {
     border-bottom: 1px solid #333;
 }
 
+.lb-tabs { display: flex; gap: 8px; padding: 10px 18px; border-bottom: 1px solid #222; }
+.lb-tab { 
+  pointer-events: all; cursor: pointer; 
+  background: #1a1a1a; color: #fff; border-radius: 8px; 
+  padding: 8px 14px; font-size: 0.95em; border: 1px solid #333;
+}
+.lb-tab.is-active { background: #2b6e30; border-color: #2a682c; }
+
 .lb-sections {
-    display: grid; 
-    grid-template-columns: 1fr 1fr; 
-    gap: 16px; 
+    display: block; 
     padding: 12px 18px; 
     overflow: auto;
 }
