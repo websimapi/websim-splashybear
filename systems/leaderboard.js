@@ -29,10 +29,8 @@ function renderLocal() {
     const d = new Date(e.at);
     li.textContent = `${e.score} — ${d.toLocaleDateString()} ${d.toLocaleTimeString()} `;
     if (e.clipUrl) {
-      const a = document.createElement('a');
-      a.className = 'lb-replay'; a.href = e.clipUrl; a.target = '_blank'; a.setAttribute('aria-label','Watch replay');
-      a.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>';
-      li.appendChild(a);
+      const meta = { src: e.clipUrl, user: (currentUser?.username)||'you', score: e.score };
+      li.appendChild(createReplayButton(meta));
     }
     list.appendChild(li);
   });
@@ -62,16 +60,14 @@ function renderGlobalFromRecords(records) {
     const name = document.createElement('span'); name.textContent = `${e.user}: ${e.score} `;
     li.appendChild(img); li.appendChild(name);
     if (e.clip) {
-      const a = document.createElement('a');
-      a.className = 'lb-replay'; a.href = e.clip; a.target = '_blank'; a.setAttribute('aria-label','Watch replay');
-      a.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>';
-      li.appendChild(a);
+      li.appendChild(createReplayButton({ src: e.clip, user: e.user, score: e.score }));
     }
     list.appendChild(li);
   });
   updatePagination(totalPages, pageState.global);
 }
 async function ensureRoom() {
+  if (!currentUser) currentUser = await (window.websim?.getUser?.() || Promise.resolve(null));
   if (!room) room = new WebsimSocket();
   if (!currentUser) currentUser = await window.websim.getCurrentUser();
 }
@@ -187,11 +183,39 @@ function bindPagination() {
     else { pageState.global++; subscribeGlobal(); }
   });
 }
+function createReplayButton(meta) {
+  const btn = document.createElement('button');
+  btn.className = 'lb-replay'; btn.type = 'button'; btn.setAttribute('aria-label','Watch replay');
+  btn.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor" stroke="currentColor" stroke-width="0"/></svg>';
+  btn.addEventListener('click', ()=> showReplayModal(meta));
+  return btn;
+}
+function bindReplayModal() {
+  const modal = document.getElementById('replay-modal');
+  const closeBtn = document.getElementById('replay-close');
+  closeBtn?.addEventListener('click', ()=> hideReplayModal());
+  modal?.addEventListener('click', (e)=>{ if(e.target===modal) hideReplayModal(); });
+}
+function showReplayModal({ src, user, score }) {
+  const modal = document.getElementById('replay-modal'); if (!modal) return;
+  const v = document.getElementById('replay-video'); v.src = src || ''; v.currentTime = 0; v.play().catch(()=>{});
+  const uname = user?.username || user?.name || user || 'You';
+  const usernameEl = document.getElementById('replay-username'); usernameEl.textContent = `@${uname}`; usernameEl.href = `https://websim.com/@${uname}`;
+  const avatarEl = document.getElementById('replay-avatar'); avatarEl.src = `https://images.websim.com/avatar/${uname}`;
+  const scoreEl = document.getElementById('replay-score'); scoreEl.textContent = `Score: ${Number(score||0)}`;
+  modal.classList.remove('hidden'); modal.setAttribute('aria-hidden','false');
+}
+function hideReplayModal() {
+  const modal = document.getElementById('replay-modal'); const v = document.getElementById('replay-video');
+  if (v) { try { v.pause(); } catch {} v.src=''; }
+  modal?.classList.add('hidden'); modal?.setAttribute('aria-hidden','true');
+}
 window.addEventListener('DOMContentLoaded', () => {
   bindModal();
   bindSubmit();
   bindTabs();
   bindPagination();
+  bindReplayModal();
   renderLocal();
   subscribeGlobal();
 });

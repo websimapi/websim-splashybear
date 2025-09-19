@@ -107,6 +107,21 @@
             </div>
         </div>
     </div>
+    <div id="replay-modal" class="hidden" aria-hidden="true">
+        <div class="replay-card">
+            <button id="replay-close" aria-label="Close replay">✕</button>
+            <div class="replay-video-wrap">
+                <video id="replay-video" playsinline controls></video>
+                <div class="replay-overlay bl">
+                    <img id="replay-avatar" class="lb-avatar" alt="User avatar">
+                    <a id="replay-username" class="replay-username" target="_blank" rel="noopener"></a>
+                </div>
+                <div class="replay-overlay br">
+                    <span id="replay-score" class="replay-score"></span>
+                </div>
+            </div>
+        </div>
+    </div>
     <script type="module" src="main.js"></script>
     <script type="module" src="systems/game.js"></script>
     <script type="module" src="systems/leaderboard.js"></script>
