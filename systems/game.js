@@ -279,7 +279,7 @@ function gameOver() {
 export function initGame() {
     setupStartScreen();
     startButton.addEventListener('click', startGame);
-    wireAudioUnlock(initAudio);
+    wireAudioUnlock(() => { initAudio(); import('./audio.js').then(m=>m.startWaterfall?.()); });
 }
 
 export function updateGame() {
