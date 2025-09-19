@@ -398,6 +398,9 @@ button:active {
     opacity: 0.8;
 }
 
+#global-scores li { display: flex; align-items: center; gap: 8px; }
+.lb-avatar { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; flex: 0 0 24px; }
+
 @media (min-width: 768px) {
     h1 {
         font-size: 4em;

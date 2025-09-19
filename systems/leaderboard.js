@@ -41,7 +41,10 @@ function renderGlobalFromRecords(records) {
   list.innerHTML = '';
   items.slice(0, 10).forEach((e)=>{
     const li = document.createElement('li');
-    li.textContent = `${e.user}: ${e.score} `;
+    li.textContent = ''; // clear to build rich row
+    const img = document.createElement('img'); img.className='lb-avatar'; img.alt=`${e.user} avatar`; img.src=`https://images.websim.com/avatar/${e.user}`;
+    const name = document.createElement('span'); name.textContent = `${e.user}: ${e.score} `;
+    li.appendChild(img); li.appendChild(name);
     if (e.clip) { const a=document.createElement('a'); a.textContent='▶ Watch'; a.href=e.clip; a.target='_blank'; li.appendChild(a); }
     list.appendChild(li);
   });
