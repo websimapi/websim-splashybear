@@ -91,7 +91,10 @@ export function createRiggedFish({ scene, score = 0, type = 'classic', opts = {}
 
   // Placement and kinematics
   const riverWidth = 7;
-  const xPos = (typeof opts.x === 'number') ? THREE.MathUtils.clamp(opts.x, -riverWidth / 2, riverWidth / 2) : (Math.random() - 0.5) * riverWidth;
+  const edgeX = (riverWidth / 2 - 0.4) * (Math.random() < 0.5 ? -1 : 1);
+  const xPos = (typeof opts.x === 'number') 
+    ? THREE.MathUtils.clamp(opts.x, -riverWidth / 2, riverWidth / 2) 
+    : (isVitiligo ? edgeX : (Math.random() - 0.5) * riverWidth);
   const baseY = 2.1;
   group.position.set(xPos, baseY, -24);
 
@@ -103,8 +106,9 @@ export function createRiggedFish({ scene, score = 0, type = 'classic', opts = {}
   const typeSpeed = isVitiligo ? 1.18 : (isGolden ? 1.05 : 1.0);
   const sprinter = Math.random() < 0.20;
   const sprintMult = sprinter ? 1.25 : 1.0;
-  const swimSpeed = (0.028 + Math.random() * 0.022) * speedMultiplier * sizeSpeedFactor * typeSpeed * sprintMult;
-  group.scale.set(sizeScale, sizeScale, sizeScale);
+  let swimSpeed = (0.028 + Math.random() * 0.022) * speedMultiplier * sizeSpeedFactor * typeSpeed * sprintMult;
+  const boosted = Math.random() < 0.10;
+  if (boosted) swimSpeed *= 2;
 
   group.userData = {
     velocity: new THREE.Vector3(0, 0, swimSpeed),
@@ -120,12 +124,20 @@ export function createRiggedFish({ scene, score = 0, type = 'classic', opts = {}
     segments, // legacy compatibility for showcase
     wiggleRotAmp: 0.24,
     tailMaxRot: 0.16,
-    pattern: opts.pattern || ['sine','zigzag','drift'][Math.floor(Math.random()*3)],
+    pattern: opts.pattern || (isVitiligo ? 'diagonal' : (isGolden ? 'jumper' : ['sine','zigzag','drift'][Math.floor(Math.random()*3)])),
     drift: 0,
     sizeScale,
     rareTiny,
     weight,
-    sprinter
+    sprinter,
+    boosted,
+    diagDir: isVitiligo ? (xPos < 0 ? 1 : -1) : 1,
+    diagSpeed: isVitiligo ? (0.055 + Math.random()*0.045) : 0,
+    crossDir: isVitiligo ? (xPos < 0 ? 1 : -1) : 1,
+    crossSpeed: isVitiligo ? (0.05 + Math.random()*0.045) : 0,
+    crossFlipTimer: 0, crossFlipInterval: isVitiligo ? (1.2 + Math.random()*1.4) : 0,
+    isGolden, isVitiligo,
+    inAir: false, jumpTimer: 0, jumpCooldown: isGolden ? (1.4 + Math.random()*1.8) : 0
   };
 
   group.traverse(o => { if (o.isMesh || o.isGroup) o.frustumCulled = false; });
@@ -151,30 +163,57 @@ export function updateRiggedFish(fish) {
   }
   fish.position.add(ud.velocity);
 
-  // Lateral weave
+  // Lateral movement
   ud.swimTimer += 0.07;
-  let weave = 0;
-  if (ud.pattern === 'sine') {
-    weave = Math.sin(ud.swimTimer * ud.swimFrequency) * ud.swimAmplitude;
-  } else if (ud.pattern === 'zigzag') {
-    const tri = 2 / Math.PI * Math.asin(Math.sin(ud.swimTimer * ud.swimFrequency));
-    weave = tri * ud.swimAmplitude * 0.8;
+  if (ud.pattern === 'diagonal') {
+    const half = 3.3, margin = 0.2, s = ud.diagSpeed || 0.06;
+    fish.position.x += (ud.diagDir || 1) * s;
+    if (fish.position.x > half - margin) { fish.position.x = half - margin; ud.diagDir = -1; }
+    if (fish.position.x < -half + margin) { fish.position.x = -half + margin; ud.diagDir = 1; }
+  } else if (ud.pattern === 'bankCross') {
+    const half = 3.3, m = 0.15, s = ud.crossSpeed || 0.05;
+    fish.position.x += s * (ud.crossDir || 1);
+    if (fish.position.x > half - m) ud.crossDir = -1;
+    if (fish.position.x < -half + m) ud.crossDir = 1;
+    if (ud.isVitiligo) {
+      ud.crossFlipTimer += 0.07;
+      if (ud.crossFlipTimer > ud.crossFlipInterval) {
+        ud.crossDir = Math.random() < 0.5 ? -1 : 1;
+        ud.crossFlipTimer = 0; ud.crossFlipInterval = 1.0 + Math.random()*1.8;
+      }
+    }
+  } else if (ud.pattern === 'jumper') {
+    if (!ud.inAir) {
+      ud.jumpTimer += 0.07;
+      if (ud.jumpTimer > ud.jumpCooldown) {
+        ud.inAir = true; ud.jumpTimer = 0; ud.jumpCooldown = 1.1 + Math.random()*2.0;
+        ud.velocity.y = 0.22 + Math.random()*0.18;
+        ud.velocity.x += (Math.random()<0.5?-1:1) * (0.04 + Math.random()*0.06);
+      }
+    } else {
+      ud.velocity.y += -0.018;
+      if (fish.position.y <= ud.baseY && ud.velocity.y <= 0) { fish.position.y = ud.baseY; ud.velocity.y = 0; ud.inAir = false; }
+    }
   } else {
-    ud.drift += (Math.random() - 0.5) * 0.01;
-    ud.drift = THREE.MathUtils.clamp(ud.drift, -0.4, 0.4);
-    weave = ud.drift;
+    let weave = 0;
+    if (ud.pattern === 'sine') weave = Math.sin(ud.swimTimer * ud.swimFrequency) * ud.swimAmplitude;
+    else if (ud.pattern === 'zigzag') { const tri = 2 / Math.PI * Math.asin(Math.sin(ud.swimTimer * ud.swimFrequency)); weave = tri * ud.swimAmplitude * 0.8; }
+    else { ud.drift += (Math.random() - 0.5) * 0.01; ud.drift = THREE.MathUtils.clamp(ud.drift, -0.4, 0.4); weave = ud.drift; }
+    const targetX = ud.initialX + weave;
+    fish.position.x = THREE.MathUtils.lerp(fish.position.x, targetX, 0.10);
   }
-  const targetX = ud.initialX + weave;
-  fish.position.x = THREE.MathUtils.lerp(fish.position.x, targetX, 0.10);
 
   // Vertical bob
-  const bob = Math.sin(ud.swimTimer * 0.8 + 1.3) * 0.04 + Math.sin(ud.swimTimer * 1.7) * 0.03;
+  const bob = (ud.pattern === 'jumper' && ud.inAir) ? 0 : (Math.sin(ud.swimTimer * 0.8 + 1.3) * 0.04 + Math.sin(ud.swimTimer * 1.7) * 0.03);
   fish.position.y = ud.baseY + bob;
 
   // Orientation
   const dx = fish.position.x - ud.prevX;
   ud.prevX = fish.position.x;
   fish.rotation.y = ud.baseRotY + Math.sin(ud.swimTimer * ud.swimFrequency) * 0.08;
+  if (ud.pattern === 'jumper' && ud.inAir) {
+    fish.rotation.x = THREE.MathUtils.lerp(fish.rotation.x, -0.35 * Math.sign(ud.velocity.y), 0.2);
+  }
   fish.rotation.z = THREE.MathUtils.clamp(-dx * 0.6, -0.28, 0.28);
 
   // Bone wave: smooth increasing amplitude towards tail
