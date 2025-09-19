@@ -93,8 +93,13 @@ export function createRiggedFish({ scene, score = 0, type = 'classic', opts = {}
   const baseY = 2.1;
   group.position.set(xPos, baseY, -24);
 
-  const speedMultiplier = 1 + (score / 700);
-  const swimSpeed = (0.045 + Math.random() * 0.045) * speedMultiplier;
+  const speedMultiplier = 1 + (THREE.MathUtils.clamp(score, 0, 5000) / 1600);
+  const rareTiny = Math.random() < 0.03;
+  const weight = rareTiny ? THREE.MathUtils.randFloat(0.06, 0.14) : THREE.MathUtils.randFloat(0.18, 1.6);
+  const sizeScale = THREE.MathUtils.clamp(Math.cbrt(weight) * 0.85, 0.30, 1.20);
+  const sizeSpeedFactor = 1 + (1.1 - sizeScale) * 0.55;
+  const swimSpeed = (0.028 + Math.random() * 0.022) * speedMultiplier * sizeSpeedFactor;
+  group.scale.set(sizeScale, sizeScale, sizeScale);
 
   group.userData = {
     velocity: new THREE.Vector3(0, 0, swimSpeed),
@@ -111,7 +116,10 @@ export function createRiggedFish({ scene, score = 0, type = 'classic', opts = {}
     wiggleRotAmp: 0.24,
     tailMaxRot: 0.16,
     pattern: opts.pattern || ['sine','zigzag','drift'][Math.floor(Math.random()*3)],
-    drift: 0
+    drift: 0,
+    sizeScale,
+    rareTiny,
+    weight
   };
 
   group.traverse(o => { if (o.isMesh || o.isGroup) o.frustumCulled = false; });

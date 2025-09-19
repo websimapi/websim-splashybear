@@ -306,7 +306,7 @@ export function updateGame() {
                 const withinX = dx <= half + buffer;
                 if (withinX) {
                     playSFX(sounds.catch);
-                    gameState.score += 10 * gameState.streak;
+                    gameState.score += computeFishScore(f, gameState.streak);
                     gameState.streak++;
                     updateUIValues({ score: gameState.score, streak: gameState.streak });
                     grabAndThrow(f);
@@ -330,6 +330,15 @@ export function updateGame() {
             if (rightArm) rightArm.rotation.x = -Math.sin(gameState.idleAnimTimer) * 0.1;
         }
     }
+}
+
+function computeFishScore(fish, streak) {
+    const ud = fish.userData || {};
+    const base = 10;
+    const weightBonus = Math.round(ud.weight ? ud.weight * 60 : 0);
+    const rareBonusMult = ud.rareTiny ? 3 : 1;
+    const raw = (base + weightBonus) * rareBonusMult * Math.max(1, streak);
+    return Math.max(1, Math.round(raw / 100));
 }
 
 function grabAndThrow(fish) {
