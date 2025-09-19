@@ -8,6 +8,8 @@ import { BEARS, FISH, getPlayerProgress, savePlayerProgress } from '../unlocks.j
 import { updateSpawner, resetSpawner } from './fishSpawner.js';
 import * as TWEEN from 'tween';
 import { addLocalScore } from './leaderboard.js';
+import { startRecording, stopRecording } from './recorder.js';
+import { renderer } from '../scene.js';
 
 // --- GAME OBJECTS ---
 export let bear = null;
@@ -227,7 +229,8 @@ function startGame() {
     updateUIValues({ score: gameState.score, streak: gameState.streak });
     showHUD();
     try { initAudio(); } catch (e) { /* ignore */ }
-
+    try { startRecording(renderer.domElement); } catch {}
+    
     activeFishes.forEach(f => scene.remove(f));
     activeFishes = [];
     resetSpawner();
@@ -236,7 +239,7 @@ function startGame() {
 function gameOver() {
     gameState.current = 'GAME_OVER';
     document.getElementById('final-score').innerText = gameState.score;
-    addLocalScore(gameState.score);
+    /* remove: addLocalScore(gameState.score); */
 
     if (gameState.score > playerProgress.highScore) {
         playerProgress.highScore = gameState.score;
@@ -261,7 +264,19 @@ function gameOver() {
     playSFX(sounds.splash);
     activeFishes.forEach(f => scene.remove(f));
     activeFishes = [];
-
+    (async () => {
+        try {
+            const blob = await stopRecording();
+            if (blob && window.websim?.upload) {
+                const file = new File([blob], `replay_${Date.now()}.webm`, { type: blob.type || 'video/webm' });
+                window.__replayUploadPromise = window.websim.upload(file).then((url)=>{ window.__lastReplayUrl = url; return url; });
+                const url = await window.__replayUploadPromise;
+                addLocalScore(gameState.score, url);
+            } else {
+                addLocalScore(gameState.score, null);
+            }
+        } catch (e) { console.warn('Replay upload failed:', e); addLocalScore(gameState.score, null); }
+    })();
     setTimeout(() => {
         const goScreen = document.getElementById('game-over-screen');
         if (goScreen) {

@@ -7,9 +7,9 @@ function getLocalScores() {
   try { return JSON.parse(localStorage.getItem(LS_KEY)) || []; } catch { return []; }
 }
 function saveLocalScores(arr) { localStorage.setItem(LS_KEY, JSON.stringify(arr)); }
-export function addLocalScore(score) {
+export function addLocalScore(score, clipUrl = null) {
   const arr = getLocalScores();
-  arr.push({ score, at: Date.now() });
+  arr.push({ score, at: Date.now(), clipUrl });
   arr.sort((a,b)=>b.score-a.score);
   saveLocalScores(arr.slice(0, 50));
   renderLocal();
@@ -18,10 +18,11 @@ function renderLocal() {
   const list = document.getElementById('local-scores'); if (!list) return;
   const arr = getLocalScores().slice(0, 10);
   list.innerHTML = '';
-  arr.forEach((e,i)=>{
+  arr.forEach((e)=>{
     const li = document.createElement('li');
     const d = new Date(e.at);
-    li.textContent = `${e.score} — ${d.toLocaleDateString()} ${d.toLocaleTimeString()}`;
+    li.textContent = `${e.score} — ${d.toLocaleDateString()} ${d.toLocaleTimeString()} `;
+    if (e.clipUrl) { const a=document.createElement('a'); a.textContent='▶ Watch'; a.href=e.clipUrl; a.target='_blank'; li.appendChild(a); }
     list.appendChild(li);
   });
 }
@@ -32,15 +33,16 @@ function renderGlobalFromRecords(records) {
     try {
       const data = JSON.parse(r.data || '{}');
       if (typeof data.highScore === 'number') {
-        items.push({ user: r.username, score: data.highScore });
+        items.push({ user: r.username, score: data.highScore, clip: data.lastReplayUrl || null });
       }
     } catch {}
   }
   items.sort((a,b)=>b.score-a.score);
   list.innerHTML = '';
-  items.slice(0, 10).forEach((e,i)=>{
+  items.slice(0, 10).forEach((e)=>{
     const li = document.createElement('li');
-    li.textContent = `${e.user}: ${e.score}`;
+    li.textContent = `${e.user}: ${e.score} `;
+    if (e.clip) { const a=document.createElement('a'); a.textContent='▶ Watch'; a.href=e.clip; a.target='_blank'; li.appendChild(a); }
     list.appendChild(li);
   });
 }
@@ -58,16 +60,18 @@ async function ensureMyRecord() {
     myRecord = list[0];
   }
 }
-export async function submitScoreToDB(score) {
+export async function submitScoreToDB(score, replayUrl) {
   try {
     await ensureMyRecord();
+    if (window.__replayUploadPromise) { try { await window.__replayUploadPromise; } catch {} }
     const coll = room.collection('player_v1');
     let data = {};
     try { data = JSON.parse(myRecord.data || '{}'); } catch { data = {}; }
     const recent = Array.isArray(data.recent) ? data.recent : [];
-    recent.unshift({ score, at: Date.now() });
+    const clip = replayUrl || window.__lastReplayUrl || null;
+    recent.unshift({ score, at: Date.now(), clipUrl: clip });
     const highScore = Math.max(Number(data.highScore||0), score);
-    const newData = { highScore, recent: recent.slice(0, 50) };
+    const newData = { highScore, recent: recent.slice(0, 50), lastReplayUrl: clip };
     await coll.update(myRecord.id, { data: JSON.stringify(newData) });
     // refresh myRecord
     const updated = coll.filter({ username: currentUser.username }).getList();
