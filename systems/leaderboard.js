@@ -2,6 +2,8 @@ const LS_KEY = 'sb_leaderboard_v1';
 let room = null;
 let currentUser = null;
 let myRecord = null;
+const pageState = { tab: 'local', local: 0, global: 0 };
+const PAGE_SIZE = 8;
 
 function getLocalScores() {
   try { return JSON.parse(localStorage.getItem(LS_KEY)) || []; } catch { return []; }
@@ -16,20 +18,25 @@ export function addLocalScore(score, clipUrl = null) {
 }
 function renderLocal() {
   const list = document.getElementById('local-scores'); if (!list) return;
-  const arr = getLocalScores().slice(0, 10);
+  const arr = getLocalScores();
+  const totalPages = Math.max(1, Math.ceil(arr.length / PAGE_SIZE));
+  pageState.local = Math.min(pageState.local, totalPages - 1);
+  const start = pageState.local * PAGE_SIZE;
+  const pageItems = arr.slice().sort((a,b)=>b.score-a.score).slice(start, start + PAGE_SIZE);
   list.innerHTML = '';
-  arr.forEach((e)=>{
+  pageItems.forEach((e)=>{
     const li = document.createElement('li');
     const d = new Date(e.at);
     li.textContent = `${e.score} — ${d.toLocaleDateString()} ${d.toLocaleTimeString()} `;
-    if (e.clipUrl) { 
+    if (e.clipUrl) {
       const a = document.createElement('a');
       a.className = 'lb-replay'; a.href = e.clipUrl; a.target = '_blank'; a.setAttribute('aria-label','Watch replay');
       a.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>';
-      li.appendChild(a); 
+      li.appendChild(a);
     }
     list.appendChild(li);
   });
+  updatePagination(totalPages, pageState.local);
 }
 function renderGlobalFromRecords(records) {
   const list = document.getElementById('global-scores'); if (!list) return;
@@ -43,21 +50,26 @@ function renderGlobalFromRecords(records) {
     } catch {}
   }
   items.sort((a,b)=>b.score-a.score);
+  const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
+  pageState.global = Math.min(pageState.global, totalPages - 1);
+  const start = pageState.global * PAGE_SIZE;
+  const pageItems = items.slice(start, start + PAGE_SIZE);
   list.innerHTML = '';
-  items.slice(0, 10).forEach((e)=>{
+  pageItems.forEach((e)=>{
     const li = document.createElement('li');
-    li.textContent = ''; // clear to build rich row
+    li.textContent = '';
     const img = document.createElement('img'); img.className='lb-avatar'; img.alt=`${e.user} avatar`; img.src=`https://images.websim.com/avatar/${e.user}`;
     const name = document.createElement('span'); name.textContent = `${e.user}: ${e.score} `;
     li.appendChild(img); li.appendChild(name);
-    if (e.clip) { 
+    if (e.clip) {
       const a = document.createElement('a');
       a.className = 'lb-replay'; a.href = e.clip; a.target = '_blank'; a.setAttribute('aria-label','Watch replay');
       a.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>';
-      li.appendChild(a); 
+      li.appendChild(a);
     }
     list.appendChild(li);
   });
+  updatePagination(totalPages, pageState.global);
 }
 async function ensureRoom() {
   if (!room) room = new WebsimSocket();
@@ -114,14 +126,15 @@ function bindModal() {
   const modal = document.getElementById('leaderboard-modal');
   const close = document.getElementById('lb-close');
   if (btn && modal && close) {
-    btn.addEventListener('click', ()=>{ renderLocal(); setActiveTab('local'); modal.classList.remove('hidden'); });
-    close.addEventListener('click', ()=> { 
-      modal.classList.add('hidden'); 
+    btn.addEventListener('click', ()=>{ pageState.tab='local'; pageState.local=0; renderLocal(); setActiveTab('local'); modal.classList.remove('hidden'); });
+    close.addEventListener('click', ()=> {
+      modal.classList.add('hidden');
       window.dispatchEvent(new CustomEvent('leaderboard:closed'));
     });
   }
 }
 function setActiveTab(which='local') {
+  pageState.tab = which;
   const localBtn = document.getElementById('lb-tab-local');
   const globalBtn = document.getElementById('lb-tab-global');
   const localList = document.getElementById('local-scores');
@@ -131,6 +144,8 @@ function setActiveTab(which='local') {
   globalBtn.classList.toggle('is-active', which==='global');
   localList.classList.toggle('hidden', which!=='local');
   globalList.classList.toggle('hidden', which!=='global');
+  // refresh pagination display for current tab
+  if (which === 'local') renderLocal(); else subscribeGlobal();
 }
 function bindSubmit() {
   const submit = document.getElementById('submit-score-btn');
@@ -148,13 +163,35 @@ function bindSubmit() {
   });
 }
 function bindTabs() {
-  document.getElementById('lb-tab-local')?.addEventListener('click', ()=>{ renderLocal(); setActiveTab('local'); });
-  document.getElementById('lb-tab-global')?.addEventListener('click', async ()=>{ await subscribeGlobal(); setActiveTab('global'); });
+  document.getElementById('lb-tab-local')?.addEventListener('click', ()=>{ pageState.local=0; setActiveTab('local'); });
+  document.getElementById('lb-tab-global')?.addEventListener('click', async ()=>{ pageState.global=0; await subscribeGlobal(); setActiveTab('global'); });
+}
+function updatePagination(totalPages, currentPage) {
+  const indicator = document.getElementById('lb-page-indicator');
+  const prev = document.getElementById('lb-prev');
+  const next = document.getElementById('lb-next');
+  if (!indicator || !prev || !next) return;
+  indicator.textContent = `${Math.min(currentPage+1,totalPages)} / ${totalPages}`;
+  prev.disabled = currentPage <= 0;
+  next.disabled = currentPage >= totalPages - 1;
+}
+function bindPagination() {
+  const prev = document.getElementById('lb-prev');
+  const next = document.getElementById('lb-next');
+  prev?.addEventListener('click', ()=>{
+    if (pageState.tab==='local') { pageState.local = Math.max(0, pageState.local-1); renderLocal(); }
+    else { pageState.global = Math.max(0, pageState.global-1); subscribeGlobal(); }
+  });
+  next?.addEventListener('click', ()=>{
+    if (pageState.tab==='local') { pageState.local++; renderLocal(); }
+    else { pageState.global++; subscribeGlobal(); }
+  });
 }
 window.addEventListener('DOMContentLoaded', () => {
   bindModal();
   bindSubmit();
   bindTabs();
+  bindPagination();
   renderLocal();
   subscribeGlobal();
 });
