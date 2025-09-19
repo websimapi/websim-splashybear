@@ -299,14 +299,16 @@ export function updateGame() {
             // Skip catch/fail checks for fish already caught (attached to hand)
             if (f.userData?.caught) continue;
             if (f.position.z >= catchZ) {
-                const withinX = Math.abs(f.position.x - bear.position.x) <= (bear.userData.netWidth || 1) / 2;
+                const half = (bear.userData.netWidth || 1) / 2, buffer = 0.35;
+                const dx = Math.abs(f.position.x - bear.position.x);
+                const withinX = dx <= half + buffer;
                 if (withinX) {
                     playSFX(sounds.catch);
                     gameState.score += 10 * gameState.streak;
                     gameState.streak++;
                     updateUIValues({ score: gameState.score, streak: gameState.streak });
                     grabAndThrow(f);
-                } else if (f.position.z > failZ) {
+                } else if (f.position.z > failZ && dx > half + buffer + 0.25) {
                     gameState.streak = 1;
                     updateUIValues({ score: gameState.score, streak: gameState.streak });
                     scene.remove(f); activeFishes.splice(i,1);
