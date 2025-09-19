@@ -58,7 +58,7 @@ export function createBear(type = 'splashy') {
     group.userData.wobbleTimer = 0;
     
     // add simple translucent net in front of the log
-    const netWidth = 2.2;
+    const netWidth = 2.8;
     const netMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff, transparent: true, opacity: 0.5 });
     netMaterial.visible = false; // Hide the net visually
     const net = new THREE.Mesh(new THREE.BoxGeometry(netWidth, 0.6, 0.1), netMaterial);

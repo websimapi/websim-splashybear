@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 
+let sceneRef = null;
+
 function createAxisLabel(text, position, color = 'black', size = 64) {
     const canvas = document.createElement('canvas');
     const context = canvas.getContext('2d');
@@ -35,9 +37,19 @@ function createAxisLabel(text, position, color = 'black', size = 64) {
     return sprite;
 }
 
+function setCatchRegionVisible(flag) {
+    if (!sceneRef) return;
+    ['bear', 'showcase-bear'].forEach(name => {
+        const b = sceneRef.getObjectByName(name);
+        const net = b?.getObjectByName?.('net');
+        if (net) net.material.visible = !!flag;
+    });
+}
+
 export const devHelperGroup = new THREE.Group();
 
 export function initDevTools(scene) {
+    sceneRef = scene;
     const axesHelper = new THREE.AxesHelper(5);
     devHelperGroup.add(axesHelper);
 
@@ -57,6 +69,7 @@ export function toggleDevTools(controls) {
     if (!controls) return;
     controls.enabled = !controls.enabled;
     devHelperGroup.visible = controls.enabled;
+    setCatchRegionVisible(controls.enabled);
     const devConsoleButton = document.getElementById('dev-console-button');
     if (!devConsoleButton) return;
 
@@ -82,4 +95,5 @@ export function resetDevTools(controls) {
         if (controls) controls.enabled = false;
         devHelperGroup.visible = false;
     }
+    setCatchRegionVisible(false);
 }
