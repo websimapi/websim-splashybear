@@ -33,6 +33,7 @@
         <div id="game-over-screen" class="hidden">
             <h1>GAME OVER</h1>
             <p>Final Score: <span id="final-score">0</span></p>
+            <button id="submit-score-btn">Submit Score</button>
         </div>
         <div id="start-screen">
             <img id="game-logo" src="splashy_bear_logo.png" alt="Splashy Bear Logo">
@@ -68,11 +69,34 @@
             </div>
             <div id="start-button-container">
                 <button id="start-button">START</button>
+                <button id="leaderboard-button">LEADERBOARD</button>
+            </div>
+        </div>
+    </div>
+    <div id="leaderboard-modal" class="hidden">
+        <div class="lb-card">
+            <div class="lb-header">
+                <h2>Leaderboard</h2>
+                <button id="lb-close">Close</button>
+            </div>
+            <div class="lb-sections">
+                <div class="lb-section">
+                    <h3>Local</h3>
+                    <ol id="local-scores"></ol>
+                </div>
+                <div class="lb-section">
+                    <h3>Global</h3>
+                    <ol id="global-scores"></ol>
+                </div>
+            </div>
+            <div class="lb-footer">
+                <small>Submitting creates/updates a single row tied to your account containing JSON data.</small>
             </div>
         </div>
     </div>
     <script type="module" src="main.js"></script>
     <script type="module" src="systems/game.js"></script>
+    <script type="module" src="systems/leaderboard.js"></script>
 <script defer src="https://static.cloudflareinsights.com/beacon.min.js/v8c78df7c7c0f484497ecbca7046644da1771523124516" integrity="sha512-8DS7rgIrAmghBFwoOTujcf6D9rXvH8xm8JQ1Ja01h9QX8EzXldiszufYa4IFfKdLUKTTrnSFXLDkUEOTrZQ8Qg==" data-cf-beacon='{"version":"2024.11.0","token":"4c6229722a6346bc8eb5cb0e5eae5d41","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
 </body>
 </html>

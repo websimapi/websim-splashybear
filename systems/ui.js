@@ -61,6 +61,7 @@ export function showHUD() {
     document.getElementById('game-over-screen').classList.add('hidden');
     document.getElementById('score-container').classList.remove('hidden');
     document.getElementById('streak-container').classList.remove('hidden');
+    const lb = document.getElementById('leaderboard-modal'); if (lb) lb.classList.add('hidden');
 }
 
 export function showGameOver() {
@@ -68,6 +69,7 @@ export function showGameOver() {
     goScreen.classList.remove('hidden', 'fade-out');
     document.getElementById('score-container').classList.add('hidden');
     document.getElementById('streak-container').classList.add('hidden');
+    const submitBtn = document.getElementById('submit-score-btn'); if (submitBtn) submitBtn.disabled = false;
 }
 
 export function showStart(isFirstLoad = false) {

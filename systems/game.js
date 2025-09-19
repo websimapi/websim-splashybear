@@ -7,6 +7,7 @@ import { bindUI, updateUIValues, showGameOver, showHUD, showStart, populateUnloc
 import { BEARS, FISH, getPlayerProgress, savePlayerProgress } from '../unlocks.js';
 import { updateSpawner, resetSpawner } from './fishSpawner.js';
 import * as TWEEN from 'tween';
+import { addLocalScore } from './leaderboard.js';
 
 // --- GAME OBJECTS ---
 export let bear = null;
@@ -235,6 +236,7 @@ function startGame() {
 function gameOver() {
     gameState.current = 'GAME_OVER';
     document.getElementById('final-score').innerText = gameState.score;
+    addLocalScore(gameState.score);
 
     if (gameState.score > playerProgress.highScore) {
         playerProgress.highScore = gameState.score;
