@@ -124,6 +124,17 @@ export function updateRiggedFish(fish) {
   const ud = fish.userData;
 
   // Advance forward
+  if (ud.thrown) {
+    ud.velocity.y += -0.015; // gravity
+    fish.position.add(ud.velocity);
+    if (ud.angularVel) {
+      fish.rotation.x += ud.angularVel.x;
+      fish.rotation.y += ud.angularVel.y;
+      fish.rotation.z += ud.angularVel.z;
+      ud.angularVel.multiplyScalar(0.992); // slight damping
+    }
+    return;
+  }
   fish.position.add(ud.velocity);
 
   // Lateral weave
