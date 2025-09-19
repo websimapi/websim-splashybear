@@ -24,12 +24,14 @@ function nextPattern() {
     patternStep = 0; spawnTimer = 0;
 }
 
-function getFishToSpawn(playerProgress) {
-    const selectedFishInfo = FISH.find(f => f.id === playerProgress.selectedFish) || FISH[0];
-    const availableFish = FISH.filter(f => 
-        playerProgress.unlockedFish.includes(f.id) && f.difficulty <= selectedFishInfo.difficulty
-    );
-    return (availableFish[Math.floor(Math.random() * availableFish.length)]) || FISH[0];
+function getFishToSpawn(score, activeFishes, playerProgress) {
+    const classic = FISH.find(f => f.id === 'classic') || FISH[0];
+    const vit = FISH.find(f => f.id === 'vitiligo');
+    const golden = FISH.find(f => f.id === 'golden');
+    const hasActiveVit = activeFishes.some(f => f?.userData?.fishType === 'vitiligo');
+    if (score >= 250 && vit && !hasActiveVit && Math.random() < 0.33) return vit;
+    if (score >= 800 && golden && Math.random() < 0.20) return golden;
+    return classic;
 }
 
 export function resetSpawner() {
@@ -43,7 +45,7 @@ export function updateSpawner(scene, activeFishes, score, playerProgress) {
 
     if (spawnTimer-- <= 0 && activeFishes.length < maxConcurrent) {
         const step = currentPattern.steps[patternStep];
-        const fishInfo = getFishToSpawn(playerProgress);
+        const fishInfo = getFishToSpawn(score, activeFishes, playerProgress);
         const f = createFish(scene, score, fishInfo.id, { x: step.x, pattern: step.move });
         activeFishes.push(f);
         spawnTimer = step.delay;

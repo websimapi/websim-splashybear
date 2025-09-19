@@ -21,7 +21,10 @@ function createVoxel(x, y, z, w, h, d, mat) {
 }
 
 export function createFish(scene, score = 0, type = 'classic', opts = {}, addToScene = true) {
-    return createRiggedFish({ scene, score, type, opts, addToScene });
+    const g = createRiggedFish({ scene, score, type, opts, addToScene });
+    if (!g.userData) g.userData = {};
+    g.userData.fishType = type;
+    return g;
 }
 
 export function updateFish(fish) {
