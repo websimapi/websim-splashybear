@@ -67,12 +67,13 @@ function renderGlobalFromRecords(records) {
   updatePagination(totalPages, pageState.global);
 }
 async function ensureRoom() {
-  if (!currentUser) currentUser = await (window.websim?.getUser?.() || Promise.resolve(null));
-  if (!room) room = new WebsimSocket();
-  if (!currentUser) currentUser = await window.websim.getCurrentUser();
+  try { if (!currentUser) currentUser = await (window.websim?.getUser?.() || window.websim?.getCurrentUser?.()); } catch {}
+  if (typeof WebsimSocket === 'undefined' || !window.websim) { room = null; return; }
+  if (!room) { try { room = new WebsimSocket(); } catch { room = null; } }
 }
 async function ensureMyRecord() {
   await ensureRoom();
+  if (!room) return; // no global backend available
   const coll = room.collection('player_v1');
   // try a few times to avoid creating during initial empty getList
   for (let attempt = 0; attempt < 3 && !myRecord; attempt++) {
@@ -94,6 +95,7 @@ async function ensureMyRecord() {
 export async function submitScoreToDB(score, replayUrl) {
   try {
     await ensureMyRecord();
+    if (!room || !myRecord) return; // gracefully bail when no backend
     if (window.__replayUploadPromise) { try { await window.__replayUploadPromise; } catch {} }
     const coll = room.collection('player_v1');
     let data = {};
@@ -113,9 +115,19 @@ export async function submitScoreToDB(score, replayUrl) {
 }
 async function subscribeGlobal() {
   await ensureRoom();
-  const coll = room.collection('player_v1');
-  coll.subscribe(renderGlobalFromRecords);
-  renderGlobalFromRecords(coll.getList());
+  if (!room) {
+    const list = document.getElementById('global-scores');
+    if (list) list.innerHTML = '<li>Global leaderboard unavailable</li>';
+    return;
+  }
+  try {
+    const coll = room.collection('player_v1');
+    coll.subscribe(renderGlobalFromRecords);
+    renderGlobalFromRecords(coll.getList());
+  } catch { 
+    const list = document.getElementById('global-scores');
+    if (list) list.innerHTML = '<li>Global leaderboard unavailable</li>';
+  }
 }
 function bindModal() {
   const btn = document.getElementById('leaderboard-button');
@@ -217,5 +229,6 @@ window.addEventListener('DOMContentLoaded', () => {
   bindPagination();
   bindReplayModal();
   renderLocal();
-  subscribeGlobal();
+  // remove auto global subscribe on load
+  // subscribeGlobal();
 });
