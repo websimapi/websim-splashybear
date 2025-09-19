@@ -8,10 +8,14 @@ const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 let keysPressed = {};
 let isDragging = false;
+// Use a fixed plane at the log depth so dragging continues off the log
+const dragPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -1);
+const _dragPoint = new THREE.Vector3();
 
 function onPointerDown(event) {
     if (gameState.current !== 'PLAYING' || event.target.tagName === 'BUTTON') return;
     isDragging = true;
+    bear.userData.isMovingWithKeys = false;
     onPointerMove(event);
 }
 
@@ -19,26 +23,10 @@ function onPointerMove(event) {
     if (!isDragging || gameState.current !== 'PLAYING' || !bear) return;
 
     updatePointer(event);
-    raycaster.setFromCamera(pointer, window.camera); 
-    const intersects = raycaster.intersectObjects(window.scene.children, true); 
-
-    for (const intersect of intersects) {
-        let object = intersect.object;
-        let isLog = false;
-
-        while (object) {
-            if (object.name === 'log') {
-                isLog = true;
-                break;
-            }
-            object = object.parent;
-        }
-
-        if (isLog) {
-            bear.userData.targetX = THREE.MathUtils.clamp(intersect.point.x, -BEAR_X_LIMIT, BEAR_X_LIMIT);
-            bear.userData.isMovingWithKeys = false;
-            break;
-        }
+    raycaster.setFromCamera(pointer, window.camera);
+    if (raycaster.ray.intersectPlane(dragPlane, _dragPoint)) {
+        bear.userData.targetX = THREE.MathUtils.clamp(_dragPoint.x, -BEAR_X_LIMIT, BEAR_X_LIMIT);
+        bear.userData.isMovingWithKeys = false;
     }
 }
 
