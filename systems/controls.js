@@ -26,7 +26,7 @@ function onPointerMove(event) {
         let object = intersect.object;
         let isLog = false;
 
-        while (object.parent) {
+        while (object) {
             if (object.name === 'log') {
                 isLog = true;
                 break;
@@ -42,7 +42,7 @@ function onPointerMove(event) {
     }
 }
 
-function onPointerUp(event) {
+function onPointerUp() {
     isDragging = false;
 }
 
@@ -53,7 +53,7 @@ function updatePointer(event) {
 }
 
 function handleKeyDown(event) {
-    if (gameState.current !== 'PLAYING') return;
+    if (gameState.current !== 'PLAYING' || !bear) return;
     keysPressed[event.key] = true;
     if (event.key === 'a' || event.key === 'ArrowLeft' || event.key === 'd' || event.key === 'ArrowRight') {
         bear.userData.isMovingWithKeys = true;
@@ -67,7 +67,7 @@ function handleKeyUp(event) {
 }
 
 function updateBearMovement() {
-    if (!bear || gameState.current !== 'PLAYING') return;
+    if (!bear || gameState.current !== 'PLAYING' || !bear.userData.isMovingWithKeys) return;
     let moveDirection = 0;
     if (keysPressed['a'] || keysPressed['ArrowLeft']) moveDirection = -1;
     else if (keysPressed['d'] || keysPressed['ArrowRight']) moveDirection = 1;
@@ -93,7 +93,7 @@ export function initControls(sceneRef, cameraRef) {
     window.addEventListener('pointerup', onPointerUp);
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
-    window.addEventListener('keyup', handleGlobalKeyUp);
+    window.addEventListener('keyup', handleGlobalKeyUp, true);
 
     const devButton = document.getElementById('dev-console-button');
     if (devButton) devButton.addEventListener('click', handleDevButtonClick);
