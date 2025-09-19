@@ -102,6 +102,7 @@ export function createRiggedFish({ scene, score = 0, type = 'classic', opts = {}
   const rareTiny = Math.random() < 0.03;
   const weight = rareTiny ? THREE.MathUtils.randFloat(0.06, 0.14) : THREE.MathUtils.randFloat(0.18, 1.6);
   const sizeScale = THREE.MathUtils.clamp(Math.cbrt(weight) * 0.85, 0.30, 1.20);
+  group.scale.set(sizeScale, sizeScale, sizeScale); // apply visual scale to match weight
   const sizeSpeedFactor = 1 + (1.1 - sizeScale) * 0.55;
   const typeSpeed = isVitiligo ? 1.18 : (isGolden ? 1.05 : 1.0);
   const sprinter = Math.random() < 0.20;
