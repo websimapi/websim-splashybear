@@ -22,7 +22,12 @@ function renderLocal() {
     const li = document.createElement('li');
     const d = new Date(e.at);
     li.textContent = `${e.score} — ${d.toLocaleDateString()} ${d.toLocaleTimeString()} `;
-    if (e.clipUrl) { const a=document.createElement('a'); a.textContent='▶ Watch'; a.href=e.clipUrl; a.target='_blank'; li.appendChild(a); }
+    if (e.clipUrl) { 
+      const a = document.createElement('a');
+      a.className = 'lb-replay'; a.href = e.clipUrl; a.target = '_blank'; a.setAttribute('aria-label','Watch replay');
+      a.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>';
+      li.appendChild(a); 
+    }
     list.appendChild(li);
   });
 }
@@ -45,7 +50,12 @@ function renderGlobalFromRecords(records) {
     const img = document.createElement('img'); img.className='lb-avatar'; img.alt=`${e.user} avatar`; img.src=`https://images.websim.com/avatar/${e.user}`;
     const name = document.createElement('span'); name.textContent = `${e.user}: ${e.score} `;
     li.appendChild(img); li.appendChild(name);
-    if (e.clip) { const a=document.createElement('a'); a.textContent='▶ Watch'; a.href=e.clip; a.target='_blank'; li.appendChild(a); }
+    if (e.clip) { 
+      const a = document.createElement('a');
+      a.className = 'lb-replay'; a.href = e.clip; a.target = '_blank'; a.setAttribute('aria-label','Watch replay');
+      a.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>';
+      li.appendChild(a); 
+    }
     list.appendChild(li);
   });
 }
