@@ -266,6 +266,7 @@ function gameOver() {
     activeFishes = [];
     (async () => {
         try {
+            await new Promise(r=>setTimeout(r, 1000)); // wait 1s post-fall before stopping recording
             const blob = await stopRecording();
             if (blob && window.websim?.upload) {
                 const file = new File([blob], `replay_${Date.now()}.webm`, { type: blob.type || 'video/webm' });
