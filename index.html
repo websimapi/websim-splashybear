@@ -33,7 +33,11 @@
         <div id="game-over-screen" class="hidden">
             <h1>GAME OVER</h1>
             <p>Final Score: <span id="final-score">0</span></p>
-            <button id="submit-score-btn">Submit Score</button>
+            <div>
+                <button id="submit-score-btn">Submit Score</button>
+                <span id="submit-loading" class="btn-loader hidden" aria-hidden="true"></span>
+            </div>
+            <button id="skip-submit-btn">Skip</button>
         </div>
         <!-- Dev score editor (shown only when Dev mode is enabled) -->
         <div id="dev-score-panel" class="hidden">

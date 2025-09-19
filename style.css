@@ -298,6 +298,18 @@ button:active {
     box-shadow: 0 0px #2a682c;
 }
 
+.btn-loader {
+  display: inline-block;
+  width: 20px; height: 20px;
+  margin-left: 10px;
+  border: 3px solid rgba(255,255,255,0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: sb-spin 0.8s linear infinite;
+  vertical-align: middle;
+}
+@keyframes sb-spin { to { transform: rotate(360deg); } }
+
 .controls {
     margin: 20px 0;
     padding: 15px;

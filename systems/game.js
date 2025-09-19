@@ -277,18 +277,22 @@ function gameOver() {
             }
         } catch (e) { console.warn('Replay upload failed:', e); addLocalScore(gameState.score, null); }
     })();
-    setTimeout(() => {
-        const goScreen = document.getElementById('game-over-screen');
-        if (goScreen) {
-            goScreen.classList.add('fade-out');
-            const onFadeOut = () => {
-                goScreen.removeEventListener('animationend', onFadeOut);
-                setupStartScreen();
-                startButton.innerText = 'RETRY';
-            };
-            goScreen.addEventListener('animationend', onFadeOut);
-        }
-    }, 2000);
+    // remove auto transition; wait for user choice
+    const skipBtn = document.getElementById('skip-submit-btn');
+    skipBtn?.addEventListener('click', proceedToStart, { once: true });
+    window.addEventListener('leaderboard:closed', proceedToStart, { once: true });
+}
+
+function proceedToStart() {
+    const goScreen = document.getElementById('game-over-screen');
+    if (!goScreen || gameState.current !== 'GAME_OVER') return;
+    goScreen.classList.add('fade-out');
+    const onFadeOut = () => {
+        goScreen.removeEventListener('animationend', onFadeOut);
+        setupStartScreen();
+        startButton.innerText = 'RETRY';
+    };
+    goScreen.addEventListener('animationend', onFadeOut);
 }
 
 export function initGame() {

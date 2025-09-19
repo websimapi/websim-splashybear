@@ -53,11 +53,21 @@ async function ensureRoom() {
 async function ensureMyRecord() {
   await ensureRoom();
   const coll = room.collection('player_v1');
-  const list = coll.filter({ username: currentUser.username }).getList();
-  if (list.length === 0) {
-    myRecord = await coll.create({ data: JSON.stringify({ highScore: 0, recent: [] }) });
-  } else {
-    myRecord = list[0];
+  // try a few times to avoid creating during initial empty getList
+  for (let attempt = 0; attempt < 3 && !myRecord; attempt++) {
+    const byId = coll.filter({ user_id: currentUser.id }).getList();
+    if (byId.length) { myRecord = byId[0]; break; }
+    const byName = coll.filter({ username: currentUser.username }).getList();
+    if (byName.length) {
+      byName.sort((a,b)=> new Date(b.created_at) - new Date(a.created_at));
+      myRecord = byName[0];
+      try { await coll.update(myRecord.id, { user_id: currentUser.id }); } catch {}
+      break;
+    }
+    await new Promise(r=>setTimeout(r, 250));
+  }
+  if (!myRecord) {
+    myRecord = await coll.create({ user_id: currentUser.id, data: JSON.stringify({ highScore: 0, recent: [] }) });
   }
 }
 export async function submitScoreToDB(score, replayUrl) {
@@ -92,16 +102,23 @@ function bindModal() {
   const close = document.getElementById('lb-close');
   if (btn && modal && close) {
     btn.addEventListener('click', ()=>{ renderLocal(); modal.classList.remove('hidden'); });
-    close.addEventListener('click', ()=> modal.classList.add('hidden'))
+    close.addEventListener('click', ()=> { 
+      modal.classList.add('hidden'); 
+      window.dispatchEvent(new CustomEvent('leaderboard:closed'));
+    });
   }
 }
 function bindSubmit() {
   const submit = document.getElementById('submit-score-btn');
   submit?.addEventListener('click', async ()=>{
     submit.disabled = true;
+    document.getElementById('skip-submit-btn')?.setAttribute('disabled','true');
+    document.getElementById('submit-loading')?.classList.remove('hidden');
     const scoreText = document.getElementById('final-score')?.textContent || '0';
     const score = parseInt(scoreText, 10) || 0;
     await submitScoreToDB(score);
+    document.getElementById('submit-loading')?.classList.add('hidden');
+    document.getElementById('skip-submit-btn')?.removeAttribute('disabled');
     // open modal to show updated global
     document.getElementById('leaderboard-modal')?.classList.remove('hidden');
   });
