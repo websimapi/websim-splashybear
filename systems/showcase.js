@@ -71,6 +71,7 @@ export function createOrUpdateShowcase() {
     showcaseBear.position.set(0, 4.65, 0.8);
     showcaseBear.rotation.x = 0; // keep facing direction from createBear()
     showcaseBear.rotation.z = 0;
+    showcaseBear.rotation.y = 0; // face forward toward the log/camera
     scene.add(showcaseBear);
 
     // Rig now has stable hand anchors; attach fish to right-hand anchor
