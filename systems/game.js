@@ -31,6 +31,8 @@ const CAM_LERP = 0.08;
 let lastBearZ = 0;
 
 export function createGameBear() {
+    /* refresh selection so gameplay uses the latest chosen character */
+    playerProgress = getPlayerProgress();
     if (bear) scene.remove(bear);
     bear = createBear(playerProgress.selectedBear);
     scene.add(bear);
