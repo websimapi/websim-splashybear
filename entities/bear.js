@@ -8,6 +8,9 @@ const grizzlyMat = new THREE.MeshLambertMaterial({ color: 0x6e4a2e });
 const darkGrizzlyMat = new THREE.MeshLambertMaterial({ color: 0x3b2818 });
 const polarMat = new THREE.MeshLambertMaterial({ color: 0xeeeeee });
 const darkPolarMat = new THREE.MeshLambertMaterial({ color: 0xb0b0b0 });
+/* add eye + muzzle materials */
+const eyeBlackMat = new THREE.MeshLambertMaterial({ color: 0x000000 });
+const muzzleLightMat = new THREE.MeshLambertMaterial({ color: 0xe6e6e6 });
 
 export const BEAR_X_LIMIT = 3.5;
 const BEAR_MOVE_SPEED = 0.08;
@@ -29,12 +32,23 @@ export function createBear(type = 'splashy') {
 
     const bodyMat = type === 'polar' ? polarMat : (type === 'grizzly' ? grizzlyMat : brownMat);
     const accentMat = type === 'polar' ? darkPolarMat : (type === 'grizzly' ? darkGrizzlyMat : darkBrownMat);
+    // snout color: slightly lighter than body for splashy; keep previous light tone for others
+    const muzzleMat = (type === 'splashy') ? new THREE.MeshLambertMaterial({ color: 0xa87347 }) : muzzleLightMat;
+    const earMat = (type === 'splashy') ? bodyMat : accentMat;
 
     group.add(createVoxel(0, 0, 0, 1.5, 1.5, 1, bodyMat));
     group.add(createVoxel(0, 1.25, 0, 1, 1, 1, bodyMat));
-    group.add(createVoxel(-0.4, 1.9, 0, 0.3, 0.3, 0.3, accentMat));
-    group.add(createVoxel(0.4, 1.9, 0, 0.3, 0.3, 0.3, accentMat));
-    group.add(createVoxel(0, 1.1, 0.5, 0.5, 0.4, 0.3, accentMat));
+    // ears: lowered to touch head
+    group.add(createVoxel(-0.42, 1.72, -0.08, 0.36, 0.36, 0.28, earMat));
+    group.add(createVoxel( 0.42, 1.72, -0.08, 0.36, 0.36, 0.28, earMat));
+    // eyes: make clearly visible and a bit higher/wider
+    const eyeL = createVoxel(-0.28, 1.58, 0.50, 0.18, 0.18, 0.08, eyeBlackMat); eyeL.name = 'eyeL'; group.add(eyeL);
+    const eyeR = createVoxel( 0.28, 1.58, 0.50, 0.18, 0.18, 0.08, eyeBlackMat); eyeR.name = 'eyeR'; group.add(eyeR);
+    // snout: just a bit lighter than body (for splashy) and slightly deeper
+    group.add(createVoxel(0, 1.20, 0.62, 0.54, 0.36, 0.36, muzzleMat));
+    // nose: move up to top of snout and make it stick out more
+    group.add(createVoxel(0, 1.44, 0.82, 0.22, 0.16, 0.16, eyeBlackMat));
+    group.add(createVoxel(0, 1.12, 0.66, 0.18, 0.12, 0.1, eyeBlackMat)); /* small nose */
     group.add(createVoxel(-0.5, -1, 0, 0.5, 0.5, 0.5, bodyMat));
     group.add(createVoxel(0.5, -1, 0, 0.5, 0.5, 0.5, bodyMat));
 
@@ -62,7 +76,9 @@ export function createBear(type = 'splashy') {
     group.userData.targetX = 0;
     group.userData.wobbleTimer = 0;
     group.userData.zTarget = group.position.z; // init Z roll target
-    
+    group.userData.eyes = [eyeL, eyeR];
+    group.userData.blink = { in:false, t:0, phase:'idle', dur:0.18, cooldown: 6 + Math.random()*8, count:0, target:1, gapDur: 0.22 };
+
     // add simple translucent net in front of the log
     const netWidth = 2.8;
     const netMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff, transparent: true, opacity: 0.5 });
@@ -102,6 +118,7 @@ export function updateBear(bear, moveDirection) {
     } else {
         bear.rotation.z = THREE.MathUtils.lerp(bear.rotation.z, 0, 0.1);
     }
+    tickBearBlink(bear);
 }
 
 export function getHandAnchor(bearGroup, side = 'right') {
@@ -114,4 +131,20 @@ export function nudgeBearZ(bearGroup, delta) {
     if (!bearGroup) return;
     const next = (bearGroup.userData.zTarget ?? bearGroup.position.z) + delta;
     bearGroup.userData.zTarget = THREE.MathUtils.clamp(next, BEAR_Z_MIN, BEAR_Z_MAX);
+}
+
+export function tickBearBlink(b, dt = 1/60) {
+    if (!b?.userData?.eyes?.length) return;
+    const st = b.userData.blink;
+    if (!st) return;
+    if (!st.in) { st.cooldown -= dt; if (st.cooldown <= 0) { st.in = true; st.phase='close'; st.t=0; st.target = Math.random()<0.12 ? 2 : 1; st.count=0; } }
+    else {
+        st.t += dt;
+        if (st.phase === 'gap') { if (st.t >= (st.gapDur || 0.16)) { st.phase = 'close'; st.t = 0; } return; }
+        const p = Math.min(1, st.t / st.dur);
+        const y = st.phase==='close' ? (1 - p) : p;
+        const scaleY = Math.max(0.08, THREE.MathUtils.lerp(1, 0.05, 1 - y));
+        b.userData.eyes.forEach(e => { e.scale.y = scaleY; });
+        if (p >= 1) { st.t = 0; if (st.phase==='close') st.phase='open'; else { st.count++; if (st.count < st.target) { st.phase='gap'; } else { st.in=false; st.phase='idle'; st.cooldown = 6 + Math.random()*8; b.userData.eyes.forEach(e=>{ e.scale.y = 1; }); } } }
+    }
 }
