@@ -7,7 +7,7 @@ import { playSFX, sounds } from './audio.js';
 import { addLocalScore } from './leaderboard.js';
 import { startRecording, stopRecording } from './recorder.js';
 import { renderer } from '../scene.js';
-import { createOrUpdateShowcase, showcaseBear, throwShowcaseFish, walkInShowcaseBear } from './showcase.js';
+import { createOrUpdateShowcase, showcaseBear, throwShowcaseFish, walkInShowcaseBear, swapShowcaseToCurrentSelection } from './showcase.js';
 import * as TWEEN from 'tween';
 
 /* add start guard */
@@ -56,7 +56,7 @@ export function setupStartScreen(isFirstLoad = false) {
         if(quickFishImg) quickFishImg.src = selectedFishInfo.asset;
 
         console.log("[SETUP] Recreating showcase after unlock selection");
-        createOrUpdateShowcase();
+        swapShowcaseToCurrentSelection();
     });
 
     console.log("[SETUP] Creating main showcase");

@@ -174,13 +174,14 @@ export function throwShowcaseFish(done) {
     bend1.start(); prep.start(); bend1.chain(recover); prep.chain(throwTw);
 }
 
-export function walkInShowcaseBear() {
+export function walkInShowcaseBear(fromRight) {
     if (showcaseBear) {
-        const fromRight = Math.random() < 0.5;
-        showcaseBear.position.set(fromRight ? 12 : -12, 4.65, 0.8);
+        const fromRightResolved = typeof fromRight === 'boolean' ? fromRight : Math.random() < 0.5;
+        showcaseBear.userData.fromRight = fromRightResolved;
+        showcaseBear.position.set(fromRightResolved ? 12 : -12, 4.65, 0.8);
         showcaseBear.visible = true;
         // face toward the log along X while walking in
-        showcaseBear.rotation.y = fromRight ? -Math.PI/2 : Math.PI/2;
+        showcaseBear.rotation.y = fromRightResolved ? -Math.PI/2 : Math.PI/2;
         const startX = showcaseBear.position.x, endX = 0, baseY = 4.65;
         const duration = 2400;
         const walkTw = new TWEEN.Tween(showcaseBear.position)
@@ -191,7 +192,7 @@ export function walkInShowcaseBear() {
                 const total = Math.max(0.0001, Math.abs(startX - endX));
                 const progress = 1 - (Math.abs(showcaseBear.position.x - endX) / total);
                 const phase = progress * Math.PI * 6;
-                showcaseBear.rotation.z = Math.sin(phase) * 0.18 * (fromRight ? -1 : 1);
+                showcaseBear.rotation.z = Math.sin(phase) * 0.18 * (fromRightResolved ? -1 : 1);
                 showcaseBear.position.y = baseY + Math.abs(Math.sin(phase)) * 0.12;
             })
             .onComplete(() => { 
@@ -202,5 +203,54 @@ export function walkInShowcaseBear() {
                 new TWEEN.Tween(wob).to({ t: 1 }, dur2).easing(easeWob).onUpdate(()=>{ const ph = wob.t * Math.PI * 4; showcaseBear.rotation.z = Math.sin(ph) * 0.12; showcaseBear.position.y = baseY + Math.abs(Math.sin(ph)) * 0.08; }).onComplete(()=>{ showcaseBear.rotation.z = 0; showcaseBear.position.y = baseY; }).start();
             })
             .start();
+    }
+}
+
+export function waddleOutShowcaseBear(toRight = true, done) {
+    if (!showcaseBear) return done?.();
+    const baseY = 4.65, targetX = toRight ? 12 : -12, faceY = toRight ? Math.PI / 2 : -Math.PI / 2;
+    const durTurn = 800, easeRot = TWEEN.Easing?.Cubic?.InOut || ((k)=>k), easeWob = TWEEN.Easing?.Sine?.InOut || ((k)=>k);
+    const wob = { t: 0 };
+    new TWEEN.Tween(wob).to({ t: 1 }, durTurn).easing(easeWob)
+      .onUpdate(()=>{ const ph = wob.t * Math.PI * 4; showcaseBear.rotation.z = Math.sin(ph)*0.12; showcaseBear.position.y = baseY + Math.abs(Math.sin(ph))*0.08; })
+      .onComplete(()=>{ showcaseBear.rotation.z = 0; showcaseBear.position.y = baseY; })
+      .start();
+    new TWEEN.Tween(showcaseBear.rotation).to({ y: faceY }, durTurn).easing(easeRot)
+      .onComplete(() => {
+        const startX = showcaseBear.position.x;
+        new TWEEN.Tween(showcaseBear.position).to({ x: targetX }, 1400).easing(TWEEN.Easing.Quadratic.In)
+          .onUpdate(() => { const t = (showcaseBear.position.x - startX) / (targetX - startX); const ph = t * Math.PI * 6; showcaseBear.rotation.z = Math.sin(ph) * 0.18 * (toRight ? -1 : 1); showcaseBear.position.y = baseY + Math.abs(Math.sin(ph)) * 0.12; })
+          .onComplete(() => { showcaseBear.rotation.z = 0; showcaseBear.position.y = baseY; try { scene.remove(showcaseBear); } catch {} showcaseBear = null; done?.(); })
+          .start();
+      }).start();
+}
+
+export function swapShowcaseToCurrentSelection() {
+    const progress = getPlayerProgress();
+    const newBearType = progress.selectedBear;
+    const newFishType = progress.selectedFish;
+    if (showcaseBear && showcaseBear.userData?.bearType === newBearType) {
+        // only fish changed -> swap fish in hand
+        const rightAnchor = getHandAnchor(showcaseBear, 'right');
+        if (rightAnchor) {
+            if (showcaseFish?.parent) showcaseFish.parent.remove(showcaseFish);
+            showcaseFish = createFish(scene, 0, newFishType, {}, false);
+            showcaseFish.name = 'showcase-fish';
+            showcaseFish.userData.pattern = 'held';
+            rightAnchor.add(showcaseFish);
+            showcaseFish.position.set(0.12, -0.35, 0.35);
+            showcaseFish.rotation.set(-Math.PI/6, Math.PI/2, Math.PI);
+            showcaseFish.scale.set(0.5,0.5,0.5);
+            setupShowcaseAnimation();
+        }
+        return;
+    }
+    // bear changed -> animate old off, spawn new and walk in
+    if (showcaseBear) {
+        const leaveToRight = !(showcaseBear.userData?.fromRight);
+        waddleOutShowcaseBear(leaveToRight, () => { createOrUpdateShowcase(); walkInShowcaseBear(leaveToRight); });
+    } else {
+        createOrUpdateShowcase();
+        walkInShowcaseBear();
     }
 }
