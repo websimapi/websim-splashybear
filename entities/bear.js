@@ -11,6 +11,9 @@ const darkPolarMat = new THREE.MeshLambertMaterial({ color: 0xb0b0b0 });
 
 export const BEAR_X_LIMIT = 3.5;
 const BEAR_MOVE_SPEED = 0.08;
+/* add Z roll controls */
+export const BEAR_Z_MIN = -9.0, BEAR_Z_MAX = 2.1;
+const BEAR_Z_SPEED = 0.012;
 const BEAR_WOBBLE_AMOUNT = 0.2;
 
 function createVoxel(x, y, z, w, h, d, mat) {
@@ -58,6 +61,7 @@ export function createBear(type = 'splashy') {
     group.rotation.y = Math.PI;
     group.userData.targetX = 0;
     group.userData.wobbleTimer = 0;
+    group.userData.zTarget = group.position.z; // init Z roll target
     
     // add simple translucent net in front of the log
     const netWidth = 2.8;
@@ -83,6 +87,13 @@ export function updateBear(bear, moveDirection) {
     if (Math.abs(distanceToTarget) > 0.01) {
         bear.position.x += moveThisFrame;
     }
+    // Z roll: move toward zTarget and clamp within safe range
+    if (typeof bear.userData.zTarget === 'number') {
+        bear.userData.zTarget = THREE.MathUtils.clamp(bear.userData.zTarget, BEAR_Z_MIN, BEAR_Z_MAX);
+        const dz = bear.userData.zTarget - bear.position.z;
+        const stepZ = Math.sign(dz) * Math.min(Math.abs(dz), BEAR_Z_SPEED);
+        if (Math.abs(dz) > 0.001) bear.position.z += stepZ;
+    }
 
     const velocityX = bear.position.x - oldX;
     if (Math.abs(velocityX) > 0.001) {
@@ -96,4 +107,11 @@ export function updateBear(bear, moveDirection) {
 export function getHandAnchor(bearGroup, side = 'right') {
     if (!bearGroup) return null;
     return bearGroup.getObjectByName(side === 'right' ? 'rightHandAnchor' : 'leftHandAnchor') || null;
+}
+
+/* add helper to nudge Z target by delta */
+export function nudgeBearZ(bearGroup, delta) {
+    if (!bearGroup) return;
+    const next = (bearGroup.userData.zTarget ?? bearGroup.position.z) + delta;
+    bearGroup.userData.zTarget = THREE.MathUtils.clamp(next, BEAR_Z_MIN, BEAR_Z_MAX);
 }
