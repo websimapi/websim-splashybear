@@ -42,3 +42,87 @@ function animate() {
 
 // Start the animation loop
 animate();
+
+/* Tap To Play overlay interaction */
+const overlay = document.getElementById('tap-start-overlay');
+const exitBtn = document.getElementById('exit-fs-btn');
+let NO_FULLSCREEN = false;
+function triggerFsHint(){ exitBtn?.classList.remove('fs-stealth'); exitBtn?.classList.add('fs-intro'); setTimeout(()=>{ exitBtn?.classList.remove('fs-intro'); exitBtn?.classList.add('fs-stealth'); },3000); }
+
+async function requestAnyFullscreen(el) {
+  const rfs = el?.requestFullscreen?.bind(el) || el?.webkitRequestFullscreen?.bind(el) || el?.msRequestFullscreen?.bind(el);
+  if (rfs) { try { await rfs({ navigationUI: 'hide' }); return true; } catch { try { await rfs(); return true; } catch {} } }
+  return false;
+}
+function isFs() {
+  return !!(document.fullscreenElement || document.webkitFullscreenElement);
+}
+function isIOS() {
+  const ua = navigator.userAgent || '';
+  return /iP(hone|ad|od)/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+function enterImmersiveFallback() {
+  document.documentElement.classList.add('app-immersive');
+  document.body.classList.add('app-immersive');
+  document.getElementById('game-container')?.classList.add('app-immersive');
+  document.getElementById('ui-container')?.classList.add('app-immersive');
+  setTimeout(()=>{ try { window.scrollTo(0,1); } catch {} }, 50);
+  exitBtn?.classList.remove('hidden');
+  triggerFsHint();
+}
+async function tryLockOrientation() {
+  try { await screen.orientation?.lock?.('landscape'); } catch {}
+}
+const tryFS = async () => {
+  if (NO_FULLSCREEN) return;
+  if (isIOS() || (!document.fullscreenEnabled && !document.webkitFullscreenEnabled)) {
+    enterImmersiveFallback(); return;
+  }
+  const targets = [
+    document.documentElement,
+    document.body,
+    document.getElementById('game-container'),
+    renderer?.domElement
+  ].filter(Boolean);
+  for (const t of targets) { if (await requestAnyFullscreen(t)) break; }
+  if (!isFs()) enterImmersiveFallback(); /* else tryLockOrientation(); */
+};
+const dismissOverlay = async () => {
+  if (!NO_FULLSCREEN) await tryFS();
+  overlay?.classList.add('hidden');
+};
+overlay?.addEventListener('click', dismissOverlay, { once: true });
+overlay?.addEventListener('touchstart', (e)=>{ e.preventDefault(); dismissOverlay(); }, { once: true, passive: false });
+overlay?.addEventListener('pointerup', dismissOverlay, { once: true });
+window.addEventListener('fullscreenchange', () => {
+  if (isFs()) {
+    document.documentElement.classList.remove('app-immersive');
+    document.body.classList.remove('app-immersive');
+    document.getElementById('game-container')?.classList.remove('app-immersive');
+    document.getElementById('ui-container')?.classList.remove('app-immersive');
+    exitBtn?.classList.remove('hidden');
+    triggerFsHint();
+  } else {
+    if (!NO_FULLSCREEN) { enterImmersiveFallback(); }
+    else { exitBtn?.classList.add('hidden'); }
+  }
+});
+window.addEventListener('orientationchange', () => { if (!isFs()) setTimeout(tryFS, 50); });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && !isFs() && !NO_FULLSCREEN) setTimeout(tryFS, 50); });
+
+/* Exit fullscreen button logic */
+async function exitAnyFullscreen() {
+  try { await document.exitFullscreen?.(); } catch {}
+  try { await document.webkitExitFullscreen?.(); } catch {}
+}
+exitBtn?.addEventListener('click', async () => {
+  NO_FULLSCREEN = true;
+  overlay?.classList.add('hidden');
+  exitBtn?.classList.remove('fs-intro','fs-stealth');
+  if (isFs()) await exitAnyFullscreen();
+  document.documentElement.classList.remove('app-immersive');
+  document.body.classList.remove('app-immersive');
+  document.getElementById('game-container')?.classList.remove('app-immersive');
+  document.getElementById('ui-container')?.classList.remove('app-immersive');
+  exitBtn?.classList.add('hidden');
+});

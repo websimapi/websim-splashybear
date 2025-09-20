@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Waterfall Fisher Bear</title>
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -122,6 +122,13 @@
             </div>
         </div>
     </div>
+    <!-- Tap to Play overlay -->
+    <div id="tap-start-overlay" aria-label="Tap to Play">
+        <img src="splashy_bear_logo.png" alt="Splashy Bear Logo">
+        <p>Tap To Play</p>
+    </div>
+    <!-- Exit Fullscreen (mobile) -->
+    <button id="exit-fs-btn" aria-label="Exit full screen" class="hidden">✕</button>
     <script type="module" src="main.js"></script>
     <script type="module" src="systems/game.js"></script>
     <script type="module" src="systems/leaderboard.js"></script>
