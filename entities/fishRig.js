@@ -69,10 +69,10 @@ export function createRiggedFish({ scene, score = 0, type = 'classic', opts = {}
   }
 
   // Tail at end bone
-  const tailBaseZ = segLen * 0.5 + 0.10;
-  const tailBase = createVoxel(0, 0.04, tailBaseZ - 0.10, 0.22, 0.56, 0.14, fishTailMat);
-  const tailV = createVoxel(0, 0.04, tailBaseZ + 0.02, 0.045, 0.54, 0.30, fishTailMat);
-  const tailH = createVoxel(0, -0.01, tailBaseZ - 0.04, 0.30, 0.040, 0.18, fishTailMat);
+  const tailRootZ = segLen + 0.02; // place tail just after last segment end (~segLen)
+  const tailBase = createVoxel(0, 0.04, tailRootZ + 0.07, 0.22, 0.56, 0.14, fishTailMat); // front face at tailRootZ
+  const tailV = createVoxel(0, 0.04, tailRootZ + 0.22, 0.045, 0.54, 0.30, fishTailMat); // touches tailBase back
+  const tailH = createVoxel(0, -0.01, tailRootZ + 0.16, 0.30, 0.040, 0.18, fishTailMat); // touches tailBase back
   /* ensure stable draw ordering for tail parts */
   tailBase.renderOrder = 1; tailV.renderOrder = 2; tailH.renderOrder = 2;
   bones[bones.length - 1].add(tailBase, tailV, tailH);
