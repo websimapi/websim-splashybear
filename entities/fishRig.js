@@ -157,6 +157,8 @@ export function createRiggedFish({ scene, score = 0, type = 'classic', opts = {}
 export function updateRiggedFish(fish) {
   if (!fish) return;
   const ud = fish.userData;
+  // If being held in bear's hand, let external tween drive tail/body wiggle
+  if (ud.pattern === 'held') return;
 
   // Advance forward
   if (ud.thrown) {

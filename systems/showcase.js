@@ -94,7 +94,7 @@ export function createOrUpdateShowcase() {
         showcaseFish.rotation.set(-Math.PI/6, Math.PI/2, Math.PI);
         showcaseFish.scale.set(0.5, 0.5, 0.5);
         showcaseFish.visible = true;
-        // ensure no culling on attached fish
+        if (showcaseFish.userData) showcaseFish.userData.pattern = 'held';
         showcaseFish.traverse((o) => { if (o.isMesh || o.isGroup) o.frustumCulled = false; });
         console.log("[SHOWCASE] Fish attached to hand anchor");
     }
@@ -115,32 +115,32 @@ export function setupShowcaseAnimation() {
     if (!showcaseBear) return;
     if (!TWEEN || !TWEEN.Tween) { console.warn("[SHOWCASE] TWEEN not ready; skipping animation"); return; }
     const easingInOut = (TWEEN.Easing && TWEEN.Easing.Sine && TWEEN.Easing.Sine.InOut) || (TWEEN.Easing?.Linear?.None) || ((k)=>k);
-    TWEEN.removeAll();
     const arm = showcaseBear.getObjectByName('rightArm');
     if (arm?.rotation) new TWEEN.Tween(arm.rotation).to({ x: -0.35 }, 900).easing(easingInOut).yoyo(true).repeat(Infinity).start();
     if (showcaseFish) {
         // lock fish at hand; animate only tail + body segments for a held wiggle
         const wiggle = { t: 0 };
+        const lin = (TWEEN.Easing?.Linear?.None) || ((k)=>k);
         const tw = new TWEEN.Tween(wiggle)
           .to({ t: Math.PI * 2 }, 1200)
-          .easing(easingInOut)
+          .easing(lin)
           .onUpdate(() => {
               if (!showcaseFish) { try { tw.stop(); } catch {} return; }
               const ud = showcaseFish.userData || {};
               const phase = wiggle.t;
-              const tailSwing = Math.sin(phase) * 0.14;
+              const tailSwing = Math.sin(phase) * 0.18;
               if (ud.tailV) ud.tailV.rotation.y = tailSwing;
               if (ud.tailH) ud.tailH.rotation.y = tailSwing;
-              if (ud.segments) {
-                  for (const s of ud.segments) {
-                      const ramp = Math.min(1, Math.max(0, (s.phase - 0.55) / 0.4));
-                      const amp = (ud.wiggleRotAmp ? ud.wiggleRotAmp * 0.45 : 0.14) * ramp;
-                      s.mesh.rotation.y = (s.baseRotY || 0) + Math.sin(phase + s.phase * Math.PI) * amp;
+              if (ud.bones && ud.boneCount) {
+                  for (let i = 0; i < ud.bones.length; i++) {
+                      const t = i / (ud.boneCount - 1);
+                      const weight = Math.pow(THREE.MathUtils.smoothstep(t, 0.2, 1.0), 1.35);
+                      ud.bones[i].rotation.y = Math.sin(phase + t * Math.PI * 1.6) * (ud.wiggleRotAmp || 0.24) * 0.75 * weight;
                   }
               }
           })
           .repeat(Infinity)
-          .yoyo(true)
+          .onRepeat(()=>{ wiggle.t = 0; })
           .start();
     }
 }
@@ -163,6 +163,7 @@ export function throwShowcaseFish(done) {
         if (showcaseFish.parent) hand.remove(showcaseFish), scene.add(showcaseFish);
         showcaseFish.position.copy(wp); showcaseFish.quaternion.copy(wq);
         showcaseFish.userData.thrown = true;
+        showcaseFish.userData.pattern = 'thrown'; // switch off 'held' so throw anim updates
         showcaseFish.userData.velocity = new THREE.Vector3(-0.22, 0.36, 0.06);
         showcaseFish.userData.angularVel = new THREE.Vector3((Math.random()*0.8-0.4), (Math.random()*1.6-0.8), (Math.random()*1.0-0.5));
         (async ()=>{ try { await initAudio(); } catch {} playSFX(sounds.whoosh); })();

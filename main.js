@@ -35,7 +35,7 @@ function animate() {
 
     updateWaterfall(waterfall);
     updateGame();
-    TWEEN.update(); // drive tween-based animations
+    TWEEN.update(performance.now()); // drive tween-based animations with timestamp
 
     renderer.render(scene, camera);
 }

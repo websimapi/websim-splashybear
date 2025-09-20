@@ -17,7 +17,6 @@ export function handleFishInteractions(bear, activeFishes, gameState, updateUIVa
             }
             continue;
         }
-        // Skip catch/fail checks for fish already caught (attached to hand)
         if (f.userData?.caught) continue;
         if (f.position.z >= catchZ) {
             const half = (bear.userData.netWidth || 1) / 2, buffer = 0.35;
@@ -34,7 +33,7 @@ export function handleFishInteractions(bear, activeFishes, gameState, updateUIVa
                 updateUIValues({ score: gameState.score, streak: gameState.streak });
                 scene.remove(f); 
                 activeFishes.splice(i,1);
-                return true; // Signal game over
+                return true;
             }
         }
     }
@@ -53,33 +52,46 @@ function computeFishScore(fish, streak) {
 function grabAndThrow(fish, bear) {
     if (!bear || !fish || fish.userData?.thrown) return;
     if (!fish.userData) fish.userData = {};
-    // mark as caught so it won't trigger fail checks while attached to the hand
     fish.userData.caught = true;
     if (!fish.userData.velocity || !fish.userData.velocity.set) fish.userData.velocity = new THREE.Vector3(0,0,0);
     const side = fish.position.x >= bear.position.x ? 'right' : 'left';
     let hand = getHandAnchor(bear, side) || getHandAnchor(bear, side === 'right' ? 'left' : 'right');
     if (!hand) return;
     const arm = bear.getObjectByName(side==='right'?'rightArm':'leftArm') || bear.getObjectByName(side==='right'?'leftArm':'rightArm');
-    if (!arm || !arm.rotation) return; // guard against missing arm
+    if (!arm || !arm.rotation) return;
     const isRight = arm?.name === 'rightArm';
+    const dir = isRight ? 1 : -1; // +X for right-hand throws, -X for left-hand
     fish.userData.velocity.set(0,0,0); fish.userData.pattern = 'held';
     if (fish.parent) fish.parent.remove(fish); hand.add(fish);
     fish.position.set(0.08 * (isRight?1:-1), -0.35, 0.30);
     fish.rotation.set(-Math.PI/6, isRight?Math.PI/2:-Math.PI/2, Math.PI);
     const easeInOut = (TWEEN.Easing && TWEEN.Easing.Sine && TWEEN.Easing.Sine.InOut) || ((k)=>k);
     const easeOut = (TWEEN.Easing && TWEEN.Easing.Sine && TWEEN.Easing.Sine.Out) || ((k)=>k);
+    const wig={t:0}, lin=(TWEEN.Easing?.Linear?.None)||((k)=>k);
+    const heldTw=new TWEEN.Tween(wig).to({t:Math.PI*2},900).easing(lin).onUpdate(()=>{
+      const ud=fish.userData||{}, ph=wig.t, ts=Math.sin(ph)*0.18;
+      if(ud.tailV) ud.tailV.rotation.y=ts; if(ud.tailH) ud.tailH.rotation.y=ts;
+      if(ud.bones && ud.boneCount){
+        for(let i=0;i<ud.bones.length;i++){
+          const t=i/(ud.boneCount-1);
+          const w=Math.pow(THREE.MathUtils.smoothstep(t,0.2,1.0),1.35);
+          ud.bones[i].rotation.y=Math.sin(ph+t*Math.PI*1.6)*(ud.wiggleRotAmp||0.24)*0.75*w;
+        }
+      }
+    }).repeat(Infinity).onRepeat(()=>{ wig.t=0; }).start();
+    fish.userData.heldWiggle=heldTw;
     const bend1 = new TWEEN.Tween(bear.rotation).to({ x: -0.28 }, 140).easing(easeInOut);
     const prep  = new TWEEN.Tween(arm.rotation).to({ x: -0.6 }, 140).easing(easeInOut);
     const throwTw = new TWEEN.Tween(arm.rotation).to({ x: 1.25 }, 180).easing(easeOut).onStart(()=>{
-        // preserve world transform from hand before detaching
         hand.updateMatrixWorld(true);
         fish.updateMatrixWorld(true);
+        try { fish.userData.heldWiggle?.stop(); } catch {}
         const wp = new THREE.Vector3(); const wq = new THREE.Quaternion();
         fish.getWorldPosition(wp); fish.getWorldQuaternion(wq);
         if (fish.parent) hand.remove(fish), scene.add(fish);
         fish.position.copy(wp); fish.quaternion.copy(wq);
         fish.userData.thrown = true;
-        const dir = isRight?1:-1;
+        fish.userData.pattern = 'thrown'; // ensure update loop applies throw physics
         fish.userData.velocity = new THREE.Vector3(0.22*dir, 0.36, 0.06);
         fish.userData.angularVel = new THREE.Vector3((Math.random()*0.8-0.4), (Math.random()*1.6-0.8)*dir, (Math.random()*1.0-0.5));
         playSFX(sounds.whoosh);
