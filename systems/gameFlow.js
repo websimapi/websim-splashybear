@@ -61,6 +61,7 @@ export function setupStartScreen(isFirstLoad = false) {
 
     console.log("[SETUP] Creating main showcase");
     // animate log back first, then waddle bear in
+    window.__canQuickStart = false;
     animateLogReset(() => {
         createOrUpdateShowcase();
         walkInShowcaseBear();
@@ -75,20 +76,25 @@ function startGame() {
     gameState.current = 'PLAYING';
     gameState.score = 0;
     gameState.streak = 1;
-    TWEEN.removeAll(); // stop showcase tweens when gameplay begins
+    // TWEEN.removeAll(); // moved to startGameWithTurnaround after animations finish
 
     // Immediately hide showcase bear to avoid overlapping with gameplay bear
     if (showcaseBear) showcaseBear.visible = false;
 
     createGameBear();
     try { startRecording(renderer.domElement); } catch {}
+    // notify listeners that gameplay has begun (for quick-start drag carry-over)
+    window.dispatchEvent(new CustomEvent('game:started'));
+
 }
 
 export function startGameWithTurnaround() {
     if (__startingSequence) return;
     __startingSequence = true;
+    TWEEN.removeAll(); // cancel any ongoing walk-in/wobble tweens to avoid double-rotations
     const proceed = () => {
         if (showcaseBear && showcaseBear.visible) {
+            showcaseBear.rotation.y = 0; // normalize facing before rotating to 180°
             const baseY = 4.65, dur = 900;
             const easeRot = TWEEN.Easing?.Cubic?.InOut || ((k)=>k);
             const easeWob = TWEEN.Easing?.Sine?.InOut || ((k)=>k);
@@ -96,9 +102,9 @@ export function startGameWithTurnaround() {
             const wob = { t: 0 };
             new TWEEN.Tween(wob).to({ t: 1 }, dur).easing(easeWob)
               .onUpdate(()=>{ const phase = wob.t * Math.PI * 4; showcaseBear.rotation.z = Math.sin(phase) * 0.15; showcaseBear.position.y = baseY + Math.abs(Math.sin(phase)) * 0.10; })
-              .onComplete(()=>{ showcaseBear.rotation.z = 0; showcaseBear.position.y = baseY; throwShowcaseFish(()=>{ startGame(); __startingSequence = false; }); })
+              .onComplete(()=>{ showcaseBear.rotation.z = 0; showcaseBear.position.y = baseY; throwShowcaseFish(()=>{ TWEEN.removeAll(); startGame(); __startingSequence = false; }); })
               .start();
-        } else { startGame(); __startingSequence = false; }
+        } else { TWEEN.removeAll(); startGame(); __startingSequence = false; }
     };
     proceed();
 }

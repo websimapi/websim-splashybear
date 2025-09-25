@@ -174,7 +174,7 @@ export function throwShowcaseFish(done) {
     bend1.start(); prep.start(); bend1.chain(recover); prep.chain(throwTw);
 }
 
-export function walkInShowcaseBear(fromRight) {
+export function walkInShowcaseBear(fromRight, done) {
     if (showcaseBear) {
         const fromRightResolved = typeof fromRight === 'boolean' ? fromRight : Math.random() < 0.5;
         showcaseBear.userData.fromRight = fromRightResolved;
@@ -200,7 +200,7 @@ export function walkInShowcaseBear(fromRight) {
                 const dur2 = 800, easeRot = TWEEN.Easing?.Cubic?.InOut || ((k)=>k), easeWob = TWEEN.Easing?.Sine?.InOut || ((k)=>k);
                 new TWEEN.Tween(showcaseBear.rotation).to({ y: 0 }, dur2).easing(easeRot).start();
                 const wob = { t: 0 };
-                new TWEEN.Tween(wob).to({ t: 1 }, dur2).easing(easeWob).onUpdate(()=>{ const ph = wob.t * Math.PI * 4; showcaseBear.rotation.z = Math.sin(ph) * 0.12; showcaseBear.position.y = baseY + Math.abs(Math.sin(ph)) * 0.08; }).onComplete(()=>{ showcaseBear.rotation.z = 0; showcaseBear.position.y = baseY; }).start();
+                new TWEEN.Tween(wob).to({ t: 1 }, dur2).easing(easeWob).onUpdate(()=>{ const ph = wob.t * Math.PI * 4; showcaseBear.rotation.z = Math.sin(ph) * 0.12; showcaseBear.position.y = baseY + Math.abs(Math.sin(ph)) * 0.08; }).onComplete(()=>{ showcaseBear.rotation.z = 0; showcaseBear.position.y = baseY; try { done?.(); } catch {} window.__canQuickStart = true; window.dispatchEvent(new CustomEvent('showcase:ready')); }).start();
             })
             .start();
     }

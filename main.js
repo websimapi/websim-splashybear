@@ -7,6 +7,8 @@ import { initGame, updateGame } from './systems/game.js';
 import { initDevTools } from './systems/dev.js';
 import * as TWEEN from 'tween';
 import { getPlayerProgress } from './unlocks.js';
+import { startGameWithTurnaround } from './systems/gameFlow.js';
+import { gameState } from './systems/game.js';
 
 // --- SCENE SETUP ---
 const scenery = createScenery();
@@ -207,3 +209,42 @@ tipSubmit?.addEventListener('click', async ()=>{
   } catch {}
   tipLoading.classList.add('hidden'); tipSubmit.disabled = false; settingsModal?.classList.add('hidden');
 });
+
+/* Quick-start: tap bear or log to start/play/retry */
+const qsRay = new THREE.Raycaster();
+const qsPt = new THREE.Vector2();
+function onQuickStartTap(e) {
+  if (gameState.current === 'PLAYING' || gameState.current === 'GAME_OVER') return;
+  const src = e.changedTouches ? e.changedTouches[0] : e;
+  const tag = (e.target && e.target.tagName) || '';
+  if (tag === 'BUTTON') return;
+  qsPt.x = (src.clientX / window.innerWidth) * 2 - 1;
+  qsPt.y = -(src.clientY / window.innerHeight) * 2 + 1;
+  qsRay.setFromCamera(qsPt, camera);
+  const hits = qsRay.intersectObjects(scene.children, true);
+  const hit = hits.find(h => {
+    const n = h.object?.name || h.object?.parent?.name || '';
+    return n === 'log' || n === 'bear' || n === 'showcase-bear';
+  });
+  if (hit) {
+    const x = src.clientX, y = src.clientY;
+    if (!window.__canQuickStart) {
+      window.addEventListener('showcase:ready', () => {
+        startGameWithTurnaround();
+        window.addEventListener('game:started', () => {
+          const pd = new PointerEvent('pointerdown', { clientX: x, clientY: y, bubbles: true });
+          const pm = new PointerEvent('pointermove', { clientX: x, clientY: y, bubbles: true });
+          window.dispatchEvent(pd); window.dispatchEvent(pm);
+        }, { once: true });
+      }, { once: true });
+      return;
+    }
+    startGameWithTurnaround();
+    window.addEventListener('game:started', () => {
+      const pd = new PointerEvent('pointerdown', { clientX: x, clientY: y, bubbles: true });
+      const pm = new PointerEvent('pointermove', { clientX: x, clientY: y, bubbles: true });
+      window.dispatchEvent(pd); window.dispatchEvent(pm);
+    }, { once: true });
+  }
+}
+window.addEventListener('pointerdown', onQuickStartTap);
