@@ -80,6 +80,7 @@
             <div id="start-button-container">
                 <button id="start-button">START</button>
                 <button id="leaderboard-button">LEADERBOARD</button>
+                <button id="settings-button" aria-label="Settings">⚙️</button>
             </div>
         </div>
     </div>
@@ -121,6 +122,30 @@
                 </div>
             </div>
         </div>
+    </div>
+    <div id="settings-modal" class="hidden" aria-hidden="true">
+      <div class="settings-card">
+        <div class="settings-header">
+          <h2>Settings</h2>
+          <button id="settings-close" aria-label="Close settings">✕</button>
+        </div>
+        <div class="settings-body">
+          <button id="settings-tip-btn" class="settings-sub">Tip</button>
+          <div id="settings-tip-panel" class="hidden">
+            <p class="settings-tip-text">If you were going to price this websim project's worth in credits, what would you price it at?</p>
+            <div id="tip-disclaimer" class="tip-disclaimer">Currency estimate is cosmetic and may guide pricing if this app launches on Android/iOS.</div>
+            <div class="tip-row">
+              <label for="tip-amount">Suggested price: <span id="tip-value">10</span> credits</label>
+              <input id="tip-amount" type="range" min="0" max="299" step="10" value="10">
+            </div>
+            <div class="tip-actions">
+              <button id="tip-submit">Submit Tip</button>
+              <button id="tip-boost" class="hidden" aria-label="Increase tip cap">🐻❤️</button>
+              <span id="tip-loading" class="btn-loader hidden" aria-hidden="true"></span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
     <!-- Tap to Play overlay -->
     <div id="tap-start-overlay" aria-label="Tap to Play">

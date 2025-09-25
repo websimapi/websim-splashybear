@@ -6,6 +6,7 @@ import { initControls } from './systems/controls.js';
 import { initGame, updateGame } from './systems/game.js';
 import { initDevTools } from './systems/dev.js';
 import * as TWEEN from 'tween';
+import { getPlayerProgress } from './unlocks.js';
 
 // --- SCENE SETUP ---
 const scenery = createScenery();
@@ -125,4 +126,84 @@ exitBtn?.addEventListener('click', async () => {
   document.getElementById('game-container')?.classList.remove('app-immersive');
   document.getElementById('ui-container')?.classList.remove('app-immersive');
   exitBtn?.classList.add('hidden');
+});
+
+const settingsBtn = document.getElementById('settings-button');
+const settingsModal = document.getElementById('settings-modal');
+const settingsClose = document.getElementById('settings-close');
+const tipBtn = document.getElementById('settings-tip-btn');
+const tipPanel = document.getElementById('settings-tip-panel');
+const tipSlider = document.getElementById('tip-amount');
+const tipValue = document.getElementById('tip-value');
+const tipSubmit = document.getElementById('tip-submit');
+const tipLoading = document.getElementById('tip-loading');
+const tipBoost = document.getElementById('tip-boost');
+
+function guessCurrency() {
+  const r=(navigator.language||'en-US').split('-').pop()?.toUpperCase();
+  const map={US:'USD',GB:'GBP',CA:'CAD',AU:'AUD',NZ:'NZD',EU:'EUR',FR:'EUR',DE:'EUR',ES:'EUR',IT:'EUR',NL:'EUR',BE:'EUR',PT:'EUR',IE:'EUR',AT:'EUR',FI:'EUR',GR:'EUR',EE:'EUR',LV:'EUR',LT:'EUR',SK:'EUR',SI:'EUR',CY:'EUR',MT:'EUR',LU:'EUR',JP:'JPY',CN:'CNY',HK:'HKD',TW:'TWD',KR:'KRW',IN:'INR'};
+  return map[r] || 'USD';
+}
+function formatLocalCurrency(amount) {
+  const cur = guessCurrency();
+  try { return new Intl.NumberFormat(undefined, { style:'currency', currency:cur }).format(amount); }
+  catch { return new Intl.NumberFormat(undefined, { style:'currency', currency:'USD' }).format(amount); }
+}
+
+function makeTipBlurb(amt = 10) {
+  const approx = formatLocalCurrency(amt * 0.01);
+  return amt === 0
+    ? `Pricing this project at 0 credits — I think it should be free.`
+    : `Pricing this project at ${amt} credits (~${approx}).`;
+}
+function makeDisclaimerText() {
+  return 'Currency estimate is cosmetic and may guide pricing if this app launches on Android/iOS.';
+}
+
+let tipBoostLevel = 0; // 0->299, 1->999, 2->2000
+const tipCaps = [299, 999, 2000];
+
+const syncBoostUI = () => {
+  const cap = tipCaps[tipBoostLevel];
+  if (String(tipSlider.max) !== String(cap)) tipSlider.max = String(cap);
+  const step = parseInt(tipSlider.step || '1', 10);
+  const threshold = cap - step;
+  const show = Number(tipSlider.value) >= threshold && tipBoostLevel < 2;
+  tipBoost.classList.toggle('hidden', !show);
+};
+
+settingsBtn?.addEventListener('click', ()=>{ settingsModal?.classList.remove('hidden'); settingsModal?.setAttribute('aria-hidden','false'); });
+settingsClose?.addEventListener('click', ()=>{ settingsModal?.classList.add('hidden'); settingsModal?.setAttribute('aria-hidden','true'); });
+tipBtn?.addEventListener('click', ()=>{
+  const p = document.querySelector('.settings-tip-text');
+  if (p) p.textContent = makeTipBlurb(parseInt(tipSlider.value,10)||10);
+  document.getElementById('tip-disclaimer').textContent = makeDisclaimerText();
+  tipPanel?.classList.toggle('hidden');
+  syncBoostUI();
+});
+tipSlider?.addEventListener('input', ()=>{
+  tipValue.textContent = String(tipSlider.value);
+  const p = document.querySelector('.settings-tip-text');
+  if (p) p.textContent = makeTipBlurb(parseInt(tipSlider.value,10)||10);
+  document.getElementById('tip-disclaimer').textContent = makeDisclaimerText();
+  syncBoostUI();
+});
+tipBoost?.addEventListener('click', ()=>{ if (tipBoostLevel < 2) { tipBoostLevel++; syncBoostUI(); } });
+tipSubmit?.addEventListener('click', async ()=>{
+  const amt = parseInt(tipSlider?.value||'10',10);
+  tipSubmit.disabled = true; tipLoading.classList.remove('hidden');
+  try {
+    NO_FULLSCREEN = true; // prevent auto re-enter
+    if (isFs()) await exitAnyFullscreen();
+    document.documentElement.classList.remove('app-immersive'); document.body.classList.remove('app-immersive');
+    document.getElementById('game-container')?.classList.remove('app-immersive'); document.getElementById('ui-container')?.classList.remove('app-immersive');
+    exitBtn?.classList.add('hidden'); await new Promise(r=>setTimeout(r,120));
+    const blurb = makeTipBlurb(amt);
+    const res = await window.websim?.postComment?.({
+      content: blurb,
+      credits: amt
+    });
+    window.websim?.addEventListener?.('comment:created', ()=>{ /* success acknowledgment */ });
+  } catch {}
+  tipLoading.classList.add('hidden'); tipSubmit.disabled = false; settingsModal?.classList.add('hidden');
 });
