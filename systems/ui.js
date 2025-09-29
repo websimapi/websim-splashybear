@@ -1,4 +1,4 @@
-import { BEARS, FISH } from '../unlocks.js';
+import { BEARS, FISH, COSMETICS } from '../unlocks.js';
 
 let fadeTimeout;
 
@@ -20,15 +20,18 @@ export function bindUI() {
     const selectionTitle = document.getElementById('selection-title');
     const bearCategory = document.getElementById('bear-category');
     const fishCategory = document.getElementById('fish-category');
+    const cosmeticCategory = document.getElementById('cosmetic-category');
+    const chooseCosmetic = document.getElementById('choose-cosmetic');
 
     function openSelection(type) {
         const logo = document.getElementById('game-logo');
         if (logo) {
             logo.classList.add('fade-out');
         }
-        selectionTitle.textContent = type === 'bear' ? 'Select Bear' : 'Select Fish';
+        selectionTitle.textContent = type === 'bear' ? 'Select Bear' : type === 'fish' ? 'Select Fish' : 'Select Cosmetic';
         bearCategory.style.display = type === 'bear' ? 'block' : 'none';
         fishCategory.style.display = type === 'fish' ? 'block' : 'none';
+        cosmeticCategory.style.display = type === 'cosmetic' ? 'block' : 'none';
         quickChoices.classList.add('hidden');
         unlocksPanel.classList.remove('hidden');
     }
@@ -40,6 +43,7 @@ export function bindUI() {
 
     chooseBear.addEventListener('click', () => openSelection('bear'));
     chooseFish.addEventListener('click', () => openSelection('fish'));
+    chooseCosmetic.addEventListener('click', () => openSelection('cosmetic'));
 
     function handleStart() {
         startScreen.classList.add('hidden');
@@ -144,9 +148,11 @@ function createUnlockBox(item, type, isUnlocked, isSelected, clickHandler) {
 export function populateUnlocks(progress, clickHandler) {
     const bearContainer = document.getElementById('bear-unlocks');
     const fishContainer = document.getElementById('fish-unlocks');
+    const cosmeticContainer = document.getElementById('cosmetic-unlocks');
     
     bearContainer.innerHTML = '';
     fishContainer.innerHTML = '';
+    cosmeticContainer.innerHTML = '';
 
     BEARS.forEach(bear => {
         const isUnlocked = progress.unlockedBears.includes(bear.id);
@@ -160,5 +166,12 @@ export function populateUnlocks(progress, clickHandler) {
         const isSelected = progress.selectedFish === fish.id;
         const box = createUnlockBox(fish, 'fish', isUnlocked, isSelected, clickHandler);
         fishContainer.appendChild(box);
+    });
+
+    COSMETICS.forEach(c => {
+        const isUnlocked = (progress.unlockedCosmetics || []).includes(c.id);
+        const isSelected = progress.selectedCosmetic === c.id;
+        const box = createUnlockBox(c, 'cosmetic', isUnlocked, isSelected, clickHandler);
+        cosmeticContainer.appendChild(box);
     });
 }

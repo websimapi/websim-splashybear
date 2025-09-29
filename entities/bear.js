@@ -26,7 +26,7 @@ function createVoxel(x, y, z, w, h, d, mat) {
     return mesh;
 }
 
-export function createBear(type = 'splashy') {
+export function createBear(type = 'splashy', cosmeticId = null) {
     const group = new THREE.Group();
     group.name = 'bear'; // Assign name to the group for easier identification
 
@@ -49,10 +49,10 @@ export function createBear(type = 'splashy') {
     const eyeL = createVoxel(-0.28, 1.58, 0.50, 0.18, 0.18, 0.08, eyeBlackMat); eyeL.name = 'eyeL'; group.add(eyeL);
     const eyeR = createVoxel( 0.28, 1.58, 0.50, 0.18, 0.18, 0.08, eyeBlackMat); eyeR.name = 'eyeR'; group.add(eyeR);
     // snout: just a bit lighter than body (for splashy) and slightly deeper
-    group.add(createVoxel(0, 1.20, 0.62, 0.54, 0.36, 0.36, muzzleMat));
+    const snout = createVoxel(0, 1.20, 0.62, 0.54, 0.36, 0.36, muzzleMat); snout.name = 'snout'; group.add(snout);
     // nose: move up to top of snout and make it stick out more
-    group.add(createVoxel(0, 1.44, 0.82, 0.22, 0.16, 0.16, eyeBlackMat));
-    group.add(createVoxel(0, 1.12, 0.66, 0.18, 0.12, 0.1, eyeBlackMat)); /* small nose */
+    const noseTop = createVoxel(0, 1.44, 0.82, 0.22, 0.16, 0.16, eyeBlackMat); noseTop.name = 'noseTop'; group.add(noseTop);
+    const noseBottom = createVoxel(0, 1.12, 0.66, 0.18, 0.12, 0.1, eyeBlackMat); noseBottom.name = 'noseBottom'; group.add(noseBottom); /* small nose */
     group.add(createVoxel(-0.5, -1, 0, 0.5, 0.5, 0.5, bodyMat));
     group.add(createVoxel(0.5, -1, 0, 0.5, 0.5, 0.5, bodyMat));
 
@@ -94,6 +94,59 @@ export function createBear(type = 'splashy') {
     group.userData.net = net; group.userData.netWidth = netWidth;
     // Ensure no parts get culled due to bounding box inaccuracies after parenting/animation
     group.traverse((o) => { if (o.isMesh || o.isGroup) o.frustumCulled = false; });
+
+    // Attach cosmetic mask (e.g., Scream mask) in front of face
+    if (cosmeticId === 'scream_mask') {
+        const mask = new THREE.Group(); mask.name = 'cosmeticMask';
+        const whiteMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
+        const blackMat = new THREE.MeshLambertMaterial({ color: 0x111111 });
+
+        // Vertical adjustment: drop by 0.25 units compared to previous implementation (1.70 -> 1.45 for straps)
+        const yDrop = 0.25;
+        const zShift = 0.04; // Move mask forward slightly to prevent clipping into bear's face/snout (Adjusted from 0.06 to 0.04 to make the near face of the mask exactly touch the bear's head at Z=0.5)
+        
+        // Main mask piece, more rectangular. Increased dimensions (0.75x1.0 -> 0.85x1.2)
+        mask.add(createVoxel(0, 1.40 - yDrop, 0.55 + zShift, 0.85, 1.2, 0.18, whiteMat));
+        
+        // Eyes, larger and more expressive
+        mask.add(createVoxel(0.24, 1.55 - yDrop, 0.65 + zShift, 0.18, 0.32, 0.08, blackMat));
+        mask.add(createVoxel(-0.24, 1.55 - yDrop, 0.65 + zShift, 0.18, 0.32, 0.08, blackMat));
+        
+        // Mouth, more oval
+        mask.add(createVoxel(0, 1.10 - yDrop, 0.65 + zShift, 0.22, 0.40, 0.08, blackMat));
+
+        // Head strap (Y position dropped by 0.25 to 1.45 to avoid ear clipping)
+        const strapHeight = 1.70 - yDrop; // 1.45
+        const strapThickness = 0.12; // Adjusted X/Z thickness to make it stick out more
+        const strapDepth = 0.15;
+        
+        // Updated side strap properties to connect visually to the mask face
+        const sideStrapLength = 1.2; 
+        const sideStrapZCenter = 0.05; // Moves strap forward from Z=0
+        const sideStrapX = 0.485; // Adjusted to connect with mask side
+        
+        // Side straps 
+        // Dimensions: X=0.12 (thickness), Y=0.15 (depth/height), Z=1.2 (length)
+        mask.add(createVoxel(sideStrapX, strapHeight, sideStrapZCenter, strapThickness, strapDepth, sideStrapLength, blackMat)); // Right side
+        mask.add(createVoxel(-sideStrapX, strapHeight, sideStrapZCenter, strapThickness, strapDepth, sideStrapLength, blackMat)); // Left side
+        
+        // Back strap connects the two side straps, aligned with the rear edge of the longer side straps.
+        const backStrapZ = -0.55; // 0.05 - 1.2/2
+        
+        // Back strap (adjusted Z position)
+        // Dimensions: X=0.96 (width, adjusted for new lateral position), Y=0.15 (height), Z=0.12 (depth/thickness)
+        mask.add(createVoxel(0, strapHeight, backStrapZ, 0.96, strapDepth, strapThickness, blackMat));
+        
+        group.add(mask);
+
+        // Hide original facial features
+        eyeL.visible = false;
+        eyeR.visible = false;
+        snout.visible = false;
+        noseTop.visible = false;
+        noseBottom.visible = false;
+    }
+
     return group;
 }
 

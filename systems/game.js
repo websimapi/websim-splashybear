@@ -34,7 +34,7 @@ export function createGameBear() {
     /* refresh selection so gameplay uses the latest chosen character */
     playerProgress = getPlayerProgress();
     if (bear) scene.remove(bear);
-    bear = createBear(playerProgress.selectedBear);
+    bear = createBear(playerProgress.selectedBear, playerProgress.selectedCosmetic || null);
     scene.add(bear);
     lastBearZ = bear.position.z;
 
@@ -46,7 +46,7 @@ export function createGameBear() {
     updateUIValues({ score: gameState.score, streak: gameState.streak });
     showHUD();
     try { initAudio(); } catch (e) { /* ignore */ }
-    
+
     activeFishes.forEach(f => scene.remove(f));
     activeFishes = [];
     resetSpawner();

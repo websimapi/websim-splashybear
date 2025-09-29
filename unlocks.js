@@ -43,6 +43,21 @@ export const FISH = [
     },
 ];
 
+export const COSMETICS = [
+    {
+        id: 'none',
+        name: 'None',
+        asset: 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=', // transparent pixel
+        unlockCondition: { type: 'score', value: 0 }
+    },
+    {
+        id: 'scream_mask',
+        name: 'Scream Mask',
+        asset: 'scream_mask_unlock.png',
+        unlockCondition: { type: 'score', value: 0 }
+    }
+];
+
 const PROGRESS_KEY = 'splashyBearProgress';
 
 export function getPlayerProgress() {
@@ -52,12 +67,24 @@ export function getPlayerProgress() {
         selectedBear: 'splashy',
         selectedFish: 'classic',
         highScore: 0,
+        unlockedCosmetics: ['none', 'scream_mask'],
+        selectedCosmetic: 'none',
     };
     try {
         const stored = localStorage.getItem(PROGRESS_KEY);
         if (stored) {
+            const loadedProgress = JSON.parse(stored);
+            // Ensure default cosmetics are always present for backward compatibility
+            const cosmetics = new Set([...(defaults.unlockedCosmetics || []), ...(loadedProgress.unlockedCosmetics || [])]);
+            loadedProgress.unlockedCosmetics = Array.from(cosmetics);
+            
+            // If selected cosmetic is somehow invalid, reset to 'none'
+            if (!loadedProgress.unlockedCosmetics.includes(loadedProgress.selectedCosmetic)) {
+                loadedProgress.selectedCosmetic = 'none';
+            }
+            
             // merge stored with defaults to prevent missing keys on updates
-            return { ...defaults, ...JSON.parse(stored) };
+            return { ...defaults, ...loadedProgress };
         }
     } catch (e) {
         console.error("Could not load player progress", e);

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { scene, camera } from '../scene.js';
 import { bear, activeFishes, gameState, createGameBear } from './game.js';
-import { BEARS, FISH, getPlayerProgress, savePlayerProgress } from '../unlocks.js';
+import { BEARS, FISH, COSMETICS, getPlayerProgress, savePlayerProgress } from '../unlocks.js';
 import { showGameOver, showStart, populateUnlocks, updateUIValues } from './ui.js';
 import { playSFX, sounds } from './audio.js';
 import { addLocalScore } from './leaderboard.js';
@@ -40,20 +40,26 @@ export function setupStartScreen(isFirstLoad = false) {
     populateUnlocks(playerProgress, (type, id) => {
         if (type === 'bear') playerProgress.selectedBear = id;
         if (type === 'fish') playerProgress.selectedFish = id;
+        if (type === 'cosmetic') playerProgress.selectedCosmetic = id; // Keep 'none' as id, not null
         savePlayerProgress(playerProgress);
 
         const quickBearName = document.querySelector('#choose-bear span');
         const quickBearImg = document.querySelector('#choose-bear img');
         const quickFishName = document.querySelector('#choose-fish span');
         const quickFishImg = document.querySelector('#choose-fish img');
+        const quickCosmeticName = document.querySelector('#choose-cosmetic span');
+        const quickCosmeticImg = document.querySelector('#choose-cosmetic img');
 
         const selectedBearInfo = BEARS.find(b => b.id === playerProgress.selectedBear);
         const selectedFishInfo = FISH.find(f => f.id === playerProgress.selectedFish);
+        const selectedCosmeticInfo = COSMETICS.find(c => c.id === playerProgress.selectedCosmetic) || null;
 
         if(quickBearName) quickBearName.textContent = selectedBearInfo.name;
         if(quickBearImg) quickBearImg.src = selectedBearInfo.asset;
         if(quickFishName) quickFishName.textContent = selectedFishInfo.name;
         if(quickFishImg) quickFishImg.src = selectedFishInfo.asset;
+        if(quickCosmeticName) quickCosmeticName.textContent = selectedCosmeticInfo && selectedCosmeticInfo.id !== 'none' ? selectedCosmeticInfo.name : 'Cosmetic';
+        if(quickCosmeticImg) quickCosmeticImg.src = selectedCosmeticInfo && selectedCosmeticInfo.id !== 'none' ? selectedCosmeticInfo.asset : 'scream_mask_unlock.png';
 
         console.log("[SETUP] Recreating showcase after unlock selection");
         swapShowcaseToCurrentSelection();
@@ -127,6 +133,13 @@ export function gameOver() {
     FISH.forEach(f => {
         if (!playerProgress.unlockedFish.includes(f.id) && f.unlockCondition.type === 'score' && playerProgress.highScore >= f.unlockCondition.value) {
             playerProgress.unlockedFish.push(f.id);
+            newUnlock = true;
+        }
+    });
+    COSMETICS.forEach(c => {
+        if (!(playerProgress.unlockedCosmetics || []).includes(c.id) && c.unlockCondition.type === 'score' && playerProgress.highScore >= c.unlockCondition.value) {
+            if (!playerProgress.unlockedCosmetics) playerProgress.unlockedCosmetics = [];
+            playerProgress.unlockedCosmetics.push(c.id);
             newUnlock = true;
         }
     });
