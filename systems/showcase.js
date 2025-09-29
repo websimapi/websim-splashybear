@@ -172,7 +172,12 @@ export function throwShowcaseFish(done) {
         setTimeout(()=>{ try { scene.remove(showcaseFish); } catch {} showcaseFish = null; done?.(); }, 650);
     });
     const recover = new TWEEN.Tween(showcaseBear.rotation).to({ x: 0 }, 220).easing(easeOut);
+
+    // ADDED: Arm rotation X recovery back to its neutral point (0)
+    const armRecover = new TWEEN.Tween(arm.rotation).to({ x: 0 }, 220).easing(easeOut);
+
     bend1.start(); prep.start(); bend1.chain(recover); prep.chain(throwTw);
+    throwTw.chain(armRecover); // Chain arm recovery
 }
 
 export function walkInShowcaseBear(fromRight, done) {

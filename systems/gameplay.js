@@ -96,6 +96,11 @@ function grabAndThrow(fish, bear) {
         fish.userData.angularVel = new THREE.Vector3((Math.random()*0.8-0.4), (Math.random()*1.6-0.8)*dir, (Math.random()*1.0-0.5));
         playSFX(sounds.whoosh);
     });
+    
+    // ADDED: Arm rotation X recovery back to its neutral point (0)
+    const armRecover = new TWEEN.Tween(arm.rotation).to({ x: 0 }, 220).easing(easeOut);
+
     const recover = new TWEEN.Tween(bear.rotation).to({ x: 0 }, 220).easing(easeOut);
     bend1.start(); prep.start(); bend1.chain(recover); prep.chain(throwTw);
+    throwTw.chain(armRecover); // Chain arm recovery
 }
