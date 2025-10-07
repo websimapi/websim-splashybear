@@ -324,8 +324,16 @@ export function createScenery() {
 
         // Add some detail on top of this new terrain
         if (Math.random() > 0.6) { // higher chance for detail
-            const detailX = x + (Math.random() - 0.5) * w;
+            let detailX = x + (Math.random() - 0.5) * w;
             const detailZ = z + (Math.random() - 0.5) * d;
+
+            // Constrain detailX to stay on the correct side of the river
+            if (side > 0) { // Right side
+                detailX = Math.max(10, detailX);
+            } else { // Left side
+                detailX = Math.min(-10, detailX);
+            }
+
             if (Math.random() > 0.4) {
                 distantTerrainGroup.add(createTree(detailX, y + h / 2, detailZ));
             } else {
