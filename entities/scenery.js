@@ -35,7 +35,7 @@ function createMountainSide(isLeft) {
     const group = new THREE.Group();
     const sign = isLeft ? -1 : 1;
     const baseWidth = 8, baseDepth = 20, startY = 2, endY = -20;
-    const bankEdgeX = 10; // Ground shelves end at x = +/-10
+    const bankEdgeX = 7; // Ground shelves end at x = +/-10, this brings mountain closer to center
     let currentY = startY, layerCount = 0;
     while (currentY > endY) {
         layerCount++;
@@ -76,7 +76,7 @@ export function createScenery() {
 
     // Riverbed - add this first to be under the water and other objects.
     const waterWidth = 8;
-    const riverLength = 30;
+    const riverLength = 100; // Extended river length
     const cliffEdgeZ = 2.5;
     const riverBedY = 1.8; // Water is at Y=2.0, banks at Y=2.1. Put this just under water.
 
@@ -119,17 +119,63 @@ export function createScenery() {
     const riverBase = createVoxel(0, riverBedY - riverBaseThickness / 2 - 1.0, cliffEdgeZ - riverLength / 2 - 0.5, waterWidth, riverBaseThickness, riverLength, rockMat);
     group.add(riverBase);
 
-    // Ground at the bottom of the waterfall
+    // --- Lower River Section (Below Waterfall) ---
     const waterfallBottomY = -18.1;
-    const bottomGroundGeo = new THREE.PlaneGeometry(12, 15);
-    const bottomGround = new THREE.Mesh(bottomGroundGeo, sandMat);
-    bottomGround.rotation.x = -Math.PI / 2;
-    bottomGround.position.set(0, waterfallBottomY, cliffEdgeZ + 7.5); // Start at cliff edge, extend forward
-    group.add(bottomGround);
+    const lowerRiverLength = 80;
+    const lowerRiverStartZ = cliffEdgeZ; // Start just after the cliff face
+
+    // Lower riverbed
+    const lowerRiverBedGeo = new THREE.PlaneGeometry(waterWidth, lowerRiverLength);
+    const lowerRiverBed = new THREE.Mesh(lowerRiverBedGeo, sandMat);
+    lowerRiverBed.rotation.x = -Math.PI / 2;
+    lowerRiverBed.position.set(0, waterfallBottomY, lowerRiverStartZ + lowerRiverLength / 2);
+    group.add(lowerRiverBed);
+    
+    // Lower river bank walls
+    const lowerBankWallHeight = 10;
+    const lowerBankWallY = waterfallBottomY - (lowerBankWallHeight / 2) + 0.1;
+    const lowerBankWallZ = lowerRiverStartZ + lowerRiverLength / 2;
+
+    const lowerLeftBankWall = createVoxel(
+        -waterWidth / 2 - bankWallThickness / 2, 
+        lowerBankWallY, 
+        lowerBankWallZ, 
+        bankWallThickness, 
+        lowerBankWallHeight, 
+        lowerRiverLength, 
+        rockMat
+    );
+    group.add(lowerLeftBankWall);
+
+    const lowerRightBankWall = createVoxel(
+        waterWidth / 2 + bankWallThickness / 2, 
+        lowerBankWallY, 
+        lowerBankWallZ, 
+        bankWallThickness, 
+        lowerBankWallHeight, 
+        lowerRiverLength, 
+        rockMat
+    );
+    group.add(lowerRightBankWall);
+
+    // Lower grass banks
+    const lowerGroundY = waterfallBottomY + 0.3; // Slightly above water level
+    const lowerGroundThickness = 0.4;
+    const lowerBankWidth = 6;
+    const lowerGroundL = createVoxel(-7, lowerGroundY - lowerGroundThickness/2, lowerBankWallZ, lowerBankWidth, lowerGroundThickness, lowerRiverLength, grassMat);
+    const lowerGroundR = createVoxel(7, lowerGroundY - lowerGroundThickness/2, lowerBankWallZ, lowerBankWidth, lowerGroundThickness, lowerRiverLength, grassMat);
+    group.add(lowerGroundL, lowerGroundR);
+
+    // Rock walls under lower grass banks
+    const lowerGroundWallHeight = 10;
+    const lowerGroundWallY = (lowerGroundY - lowerGroundThickness / 2) - (lowerGroundWallHeight / 2);
+    const lowerGroundWallL = createVoxel(-7, lowerGroundWallY, lowerBankWallZ, lowerBankWidth, lowerGroundWallHeight, lowerRiverLength, rockMat);
+    const lowerGroundWallR = createVoxel(7, lowerGroundWallY, lowerBankWallZ, lowerBankWidth, lowerGroundWallHeight, lowerRiverLength, rockMat);
+    group.add(lowerGroundWallL, lowerGroundWallR);
 
     // Cliff face behind waterfall
     // Water is at z=2.5, from y=2 to y=-18. This wall sits behind it (z < 2.5).
-    group.add(createVoxel(0, -12.5, 1.8, 10, 25, 1.2, rockMat)); // Main back wall (moved behind waterfall and down)
+    group.add(createVoxel(0, -12.5, 1.8, 16, 25, 1.2, rockMat)); // Main back wall (moved behind waterfall and down)
     group.add(createVoxel(3, -10, 1.6, 4, 8, 1, rockMat)); // Ledge/variation (moved down)
     group.add(createVoxel(-4, -6, 1.7, 3, 5, 0.8, rockMat)); // (moved down)
     group.add(createVoxel(-2, -20, 1.5, 5, 7, 1, rockMat)); // (moved down)
@@ -148,22 +194,22 @@ export function createScenery() {
     // green ground shelves along both sides. Water is at y=2.0. Banks are slightly higher.
     const groundY = 2.1;
     const groundThickness = 0.4;
-    const groundL = createVoxel(-7, groundY - groundThickness/2, -8, 6, groundThickness, 24, grassMat);
-    const groundR = createVoxel( 7, groundY - groundThickness/2, -8, 6, groundThickness, 24, grassMat);
+    const bankLength = riverLength - 4; // Make grass banks almost as long as the river
+    const groundL = createVoxel(-7, groundY - groundThickness/2, -bankLength/2, 6, groundThickness, bankLength, grassMat);
+    const groundR = createVoxel( 7, groundY - groundThickness/2, -bankLength/2, 6, groundThickness, bankLength, grassMat);
     group.add(groundL, groundR);
 
     // Add rock walls underneath the grass shelves to connect them to the mountains
     const groundWallHeight = 22; // Match river bank wall height for consistency
     const groundWallY = (groundY - groundThickness / 2) - (groundWallHeight / 2); // Position it right under the grass
     
-    const groundWallL = createVoxel(-7, groundWallY, -8, 6, groundWallHeight, 24, rockMat);
-    const groundWallR = createVoxel(7, groundWallY, -8, 6, groundWallHeight, 24, rockMat);
+    const groundWallL = createVoxel(-7, groundWallY, -bankLength/2, 6, groundWallHeight, bankLength, rockMat);
+    const groundWallR = createVoxel(7, groundWallY, -bankLength/2, 6, groundWallHeight, bankLength, rockMat);
     group.add(groundWallL, groundWallR);
 
     // Dynamic Tree and Bush Placement
     const bankWidth = 6;
-    const bankLength = 24;
-    const numTrees = 25;
+    const numTrees = 50; // Increased tree count for longer banks
     for (let i = 0; i < numTrees; i++) {
         const side = Math.random() < 0.5 ? -1 : 1;
         // Position on the grass banks, avoiding the absolute edges and river.
@@ -171,7 +217,7 @@ export function createScenery() {
         // We want x to be > 4 + (leaf_width/2) = 4.75. Let's start at 5.
         // The bank is from x=4 to x=10.
         const x = side * (5.0 + Math.random() * (bankWidth - 1.5)); // Place between 5 and 9.5 from center
-        const z = -8 - (bankLength / 2) + 0.5 + Math.random() * (bankLength - 1);
+        const z = -bankLength / 2 + 0.5 + Math.random() * (bankLength - 1);
         group.add(createTree(x, groundY, z));
 
         // Occasionally add a bush near a tree
@@ -181,6 +227,22 @@ export function createScenery() {
             // Clamp bush X to stay on the bank
             const clampedBushX = side * Math.max(5.0, Math.min(Math.abs(bushX), 10.0 - 0.6));
             group.add(createBush(clampedBushX, groundY, bushZ));
+        }
+    }
+
+    // Dynamic Tree and Bush Placement for Lower Banks
+    const numTreesLower = 40;
+    for (let i = 0; i < numTreesLower; i++) {
+        const side = Math.random() < 0.5 ? -1 : 1;
+        const x = side * (5.0 + Math.random() * (lowerBankWidth - 1.5));
+        const z = lowerRiverStartZ + 0.5 + Math.random() * (lowerRiverLength - 1);
+        group.add(createTree(x, lowerGroundY, z));
+
+        if (Math.random() > 0.65) {
+            const bushX = x + (Math.random() - 0.5) * 2;
+            const bushZ = z + (Math.random() - 0.5) * 2;
+            const clampedBushX = side * Math.max(5.0, Math.min(Math.abs(bushX), 10.0 - 0.6));
+            group.add(createBush(clampedBushX, lowerGroundY, bushZ));
         }
     }
 
@@ -195,16 +257,16 @@ export function createScenery() {
         new THREE.MeshLambertMaterial({ color: 0x707070 })  // Darker rock
     ];
 
-    for (let i = 0; i < 150; i++) {
-        const z = -50 - (Math.random() * 150); // Position from z=-50 to z=-200
-        const isFar = z < -100;
+    for (let i = 0; i < 250; i++) { // Increased chunk count
+        const z = -30 - (Math.random() * 180); // Position from z=-30 to z=-210
+        const isFar = z < -120;
 
         const side = Math.random() < 0.5 ? -1 : 1;
-        const x = side * (15 + Math.random() * 60); // Place them wider than the immediate banks
+        const x = side * (15 + Math.random() * 80); // Place them wider
 
-        const w = 8 + Math.random() * (isFar ? 35 : 18);
-        const d = 8 + Math.random() * (isFar ? 35 : 18);
-        const h = 5 + Math.random() * (isFar ? 50 : 25);
+        const w = 12 + Math.random() * (isFar ? 45 : 25); // Larger chunks
+        const d = 12 + Math.random() * (isFar ? 45 : 25);
+        const h = 8 + Math.random() * (isFar ? 60 : 35);
 
         const y = -15 + h / 2; // Position them lower down to look like mountains rising
 
@@ -213,7 +275,7 @@ export function createScenery() {
         distantTerrainGroup.add(terrainChunk);
 
         // Add a secondary smaller chunk sometimes for more natural, lumpy shapes
-        if (Math.random() > 0.6) {
+        if (Math.random() > 0.5) { // Increased chance
              const w2 = w * (0.4 + Math.random() * 0.4);
              const d2 = d * (0.4 + Math.random() * 0.4);
              const h2 = h * (0.4 + Math.random() * 0.4);
@@ -226,14 +288,14 @@ export function createScenery() {
     }
 
     // Add higher mountain peaks to fill out the top
-    for (let i = 0; i < 60; i++) {
-        const z = -100 - (Math.random() * 120); // Focus on the further back area
+    for (let i = 0; i < 80; i++) { // Increased count
+        const z = -120 - (Math.random() * 100); // Focus on the further back area
         const side = Math.random() < 0.5 ? -1 : 1;
-        const x = side * (25 + Math.random() * 80); // Place them wide
+        const x = side * (25 + Math.random() * 100); // Place them wide
 
-        const w = 15 + Math.random() * 40;
-        const d = 15 + Math.random() * 40;
-        const h = 40 + Math.random() * 60; // Taller chunks for peaks
+        const w = 20 + Math.random() * 50; // Larger peaks
+        const d = 20 + Math.random() * 50;
+        const h = 50 + Math.random() * 70; // Taller chunks for peaks
 
         // Place these chunks higher up to form the top of the mountains
         const y = 10 + h / 2;
@@ -244,13 +306,13 @@ export function createScenery() {
     }
     
     // Add expansive grassy terrain on top of mountains
-    for (let i = 0; i < 120; i++) {
+    for (let i = 0; i < 150; i++) { // Increased count
         const side = Math.random() < 0.5 ? -1 : 1;
-        const z = -40 - (Math.random() * 100);
-        const x = side * (12 + Math.random() * 50);
+        const z = -40 - (Math.random() * 120);
+        const x = side * (12 + Math.random() * 60);
 
-        const w = 5 + Math.random() * 15;
-        const d = 5 + Math.random() * 15;
+        const w = 8 + Math.random() * 20; // larger patches
+        const d = 8 + Math.random() * 20;
         const h = 0.5 + Math.random() * 4;
         
         // Find a plausible y position by raycasting down, or just place them higher up
@@ -261,7 +323,7 @@ export function createScenery() {
         distantTerrainGroup.add(grassChunk);
 
         // Add some detail on top of this new terrain
-        if (Math.random() > 0.7) {
+        if (Math.random() > 0.6) { // higher chance for detail
             const detailX = x + (Math.random() - 0.5) * w;
             const detailZ = z + (Math.random() - 0.5) * d;
             if (Math.random() > 0.4) {
