@@ -66,14 +66,14 @@ export function initGame() {
     wireAudioUnlock(() => { initAudio(); import('./audio.js').then(m=>m.startWaterfall?.()); });
 }
 
-export function updateGame() {
+export function updateGame(dt = 1/60) {
     if (gameState.current === 'PLAYING') {
         if (!bear) return;
         // Apply gentle forward drift; player must occasionally counter with back swipes
         if (typeof bear.userData.zTarget === 'number') {
             bear.userData.zTarget = Math.min(bear.userData.zTarget + Z_DRIFT_PER_TICK, BEAR_Z_MAX);
         }
-        updateBear(bear, 0); // Direction is now handled by controls
+        updateBear(bear, 0, dt); // Direction is now handled by controls
         const dz = bear.position.z - lastBearZ; lastBearZ = bear.position.z;
         const log = scene.getObjectByName('log');
         if (log) {
@@ -94,7 +94,7 @@ export function updateGame() {
         updateSpawner(scene, activeFishes, gameState.score, playerProgress);
 
         // Handle fish interactions and check for game over
-        const shouldGameOver = handleFishInteractions(bear, activeFishes, gameState, updateUIValues);
+        const shouldGameOver = handleFishInteractions(bear, activeFishes, gameState, updateUIValues, dt);
         if (shouldGameOver) {
             gameOver();
             return;
@@ -114,13 +114,13 @@ export function updateGame() {
             bear.rotation.z += 0.05;
         }
     } else { // IDLE
-        gameState.idleAnimTimer += 0.05;
-        if (showcaseBear) tickBearBlink(showcaseBear);
+        gameState.idleAnimTimer += (dt * 60) * 0.05;
+        if (showcaseBear) tickBearBlink(showcaseBear, dt);
         // Update thrown showcase fish physics during start/retry animation
-        if (showcaseFish && showcaseFish.userData?.thrown) updateFish(showcaseFish);
+        if (showcaseFish && showcaseFish.userData?.thrown) updateFish(showcaseFish, dt);
         // Update thrown gameplay fish (safety if any remain in array)
         activeFishes.forEach(fish => {
-            if (fish && fish.userData?.thrown) updateFish(fish);
+            if (fish && fish.userData?.thrown) updateFish(fish, dt);
         });
     }
 }

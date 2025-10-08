@@ -28,8 +28,25 @@ mountRenderer(document.getElementById('game-container'));
 window.addEventListener('resize', resizeRenderer);
 
 // --- GAME LOOP ---
+const clock = new THREE.Clock();
+const FIXED_TIMESTEP = 1 / 60; // 60 updates per second
+let accumulator = 0;
+let tweenTime = performance.now();
+
 function animate() {
-    requestAnimationFrame(animate); 
+    requestAnimationFrame(animate);
+
+    const deltaTime = clock.getDelta();
+    accumulator += deltaTime;
+
+    while (accumulator >= FIXED_TIMESTEP) {
+        updateGame(FIXED_TIMESTEP);
+
+        tweenTime += FIXED_TIMESTEP * 1000;
+        TWEEN.update(tweenTime);
+        
+        accumulator -= FIXED_TIMESTEP;
+    }
     
     const controls = getOrbitControls();
     if (controls?.enabled) {
@@ -37,8 +54,6 @@ function animate() {
     }
 
     updateWaterfall(waterfall);
-    updateGame();
-    TWEEN.update(performance.now()); // drive tween-based animations with timestamp
 
     renderer.render(scene, camera);
 }

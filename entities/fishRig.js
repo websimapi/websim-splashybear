@@ -108,7 +108,7 @@ export function createRiggedFish({ scene, score = 0, type = 'classic', opts = {}
   const typeSpeed = isVitiligo ? 1.18 : (isGolden ? 1.05 : 1.0);
   const sprinter = Math.random() < 0.20;
   const sprintMult = sprinter ? 1.25 : 1.0;
-  let swimSpeed = (0.028 + Math.random() * 0.022) * speedMultiplier * sizeSpeedFactor * typeSpeed * sprintMult;
+  let swimSpeed = (0.035 + Math.random() * 0.0275) * speedMultiplier * sizeSpeedFactor * typeSpeed * sprintMult;
   const boosted = Math.random() < 0.10;
   if (boosted) swimSpeed *= 2;
 
@@ -147,7 +147,7 @@ export function createRiggedFish({ scene, score = 0, type = 'classic', opts = {}
   return group;
 }
 
-export function updateRiggedFish(fish) {
+export function updateRiggedFish(fish, dt = 1/60) {
   if (!fish) return;
   const ud = fish.userData;
   // If being held in bear's hand, let external tween drive tail/body wiggle
@@ -155,32 +155,34 @@ export function updateRiggedFish(fish) {
 
   // Advance forward
   if (ud.thrown) {
-    ud.velocity.y += -0.015; // gravity
-    fish.position.add(ud.velocity);
+    ud.velocity.y += -0.015 * (dt * 60); // gravity
+    const scaledVel = ud.velocity.clone().multiplyScalar(dt * 60);
+    fish.position.add(scaledVel);
     if (ud.angularVel) {
-      fish.rotation.x += ud.angularVel.x;
-      fish.rotation.y += ud.angularVel.y;
-      fish.rotation.z += ud.angularVel.z;
-      ud.angularVel.multiplyScalar(0.992); // slight damping
+      fish.rotation.x += ud.angularVel.x * (dt * 60);
+      fish.rotation.y += ud.angularVel.y * (dt * 60);
+      fish.rotation.z += ud.angularVel.z * (dt * 60);
+      ud.angularVel.multiplyScalar(Math.pow(0.992, dt * 60)); // slight damping
     }
     return;
   }
-  fish.position.add(ud.velocity);
+  const scaledVelocity = ud.velocity.clone().multiplyScalar(dt * 60);
+  fish.position.add(scaledVelocity);
 
   // Lateral movement
-  ud.swimTimer += 0.07;
+  ud.swimTimer += 0.07 * (dt * 60);
   if (ud.pattern === 'diagonal') {
-    const half = 3.3, margin = 0.2, s = ud.diagSpeed || 0.06;
+    const half = 3.3, margin = 0.2, s = (ud.diagSpeed || 0.06) * (dt * 60);
     fish.position.x += (ud.diagDir || 1) * s;
     if (fish.position.x > half - margin) { fish.position.x = half - margin; ud.diagDir = -1; }
     if (fish.position.x < -half + margin) { fish.position.x = -half + margin; ud.diagDir = 1; }
   } else if (ud.pattern === 'bankCross') {
-    const half = 3.3, m = 0.15, s = ud.crossSpeed || 0.05;
+    const half = 3.3, m = 0.15, s = (ud.crossSpeed || 0.05) * (dt * 60);
     fish.position.x += s * (ud.crossDir || 1);
     if (fish.position.x > half - m) ud.crossDir = -1;
     if (fish.position.x < -half + m) ud.crossDir = 1;
     if (ud.isVitiligo) {
-      ud.crossFlipTimer += 0.07;
+      ud.crossFlipTimer += 0.07 * (dt*60);
       if (ud.crossFlipTimer > ud.crossFlipInterval) {
         ud.crossDir = Math.random() < 0.5 ? -1 : 1;
         ud.crossFlipTimer = 0; ud.crossFlipInterval = 1.0 + Math.random()*1.8;
@@ -188,15 +190,16 @@ export function updateRiggedFish(fish) {
     }
   } else if (ud.pattern === 'jumper') {
     if (!ud.inAir) {
-      ud.jumpTimer += 0.07;
+      ud.jumpTimer += 0.07 * (dt * 60);
       if (ud.jumpTimer > ud.jumpCooldown) {
         ud.inAir = true; ud.jumpTimer = 0; ud.jumpCooldown = 1.1 + Math.random()*2.0;
         ud.velocity.y = 0.22 + Math.random()*0.18;
         ud.velocity.x += (Math.random()<0.5?-1:1) * (0.04 + Math.random()*0.06);
       }
     } else {
-      ud.velocity.y += -0.018;
-      if (fish.position.y <= ud.baseY && ud.velocity.y <= 0) { fish.position.y = ud.baseY; ud.velocity.y = 0; ud.inAir = false; }
+      ud.velocity.y += -0.018 * (dt * 60);
+      const scaledVelY = ud.velocity.y * (dt * 60);
+      if (fish.position.y <= ud.baseY && scaledVelY <= 0) { fish.position.y = ud.baseY; ud.velocity.y = 0; ud.inAir = false; }
     }
   } else {
     let weave = 0;

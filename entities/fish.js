@@ -21,8 +21,8 @@ export function createFish(scene, score = 0, type = 'classic', opts = {}, addToS
     return g;
 }
 
-export function updateFish(fish) {
-    updateRiggedFish(fish);
+export function updateFish(fish, dt = 1/60) {
+    updateRiggedFish(fish, dt);
 }
 
 export function isFishPastLog(fish) {

@@ -5,11 +5,11 @@ import { updateFish } from '../entities/fish.js';
 import { playSFX, sounds } from './audio.js';
 import * as TWEEN from 'tween';
 
-export function handleFishInteractions(bear, activeFishes, gameState, updateUIValues) {
+export function handleFishInteractions(bear, activeFishes, gameState, updateUIValues, dt = 1/60) {
     const catchZ = bear.position.z - 0.9, failZ = bear.position.z - 0.6;
     for (let i = activeFishes.length - 1; i >= 0; i--) {
         const f = activeFishes[i];
-        updateFish(f);
+        updateFish(f, dt);
         if (f.userData?.thrown) {
             if (f.position.y < -10 || Math.abs(f.position.x) > 30 || f.position.z > 20) { 
                 scene.remove(f); 

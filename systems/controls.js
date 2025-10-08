@@ -64,12 +64,13 @@ function handleKeyDown(event) {
     if (event.key === 'a' || event.key === 'ArrowLeft' || event.key === 'd' || event.key === 'ArrowRight') {
         bear.userData.isMovingWithKeys = true;
     }
-    updateBearMovement();
+    // updateBearMovement is now implicitly called by the game loop, which has the delta time.
+    // So direct calls are not needed here. The game loop will pick up the direction change.
 }
 
 function handleKeyUp(event) {
     keysPressed[event.key] = false;
-    updateBearMovement();
+    // updateBearMovement is now implicitly called by the game loop.
 }
 
 function updateBearMovement() {
@@ -77,7 +78,11 @@ function updateBearMovement() {
     let moveDirection = 0;
     if (keysPressed['a'] || keysPressed['ArrowLeft']) moveDirection = -1;
     else if (keysPressed['d'] || keysPressed['ArrowRight']) moveDirection = 1;
-    updateBear(bear, moveDirection);
+    
+    // The main game loop now calls updateBear with dt, so we just set the target.
+    if (moveDirection !== 0) {
+        bear.userData.targetX = THREE.MathUtils.clamp(bear.position.x + moveDirection * 0.2, -BEAR_X_LIMIT, BEAR_X_LIMIT);
+    }
 }
 
 function handleGlobalKeyUp(event) {
@@ -103,4 +108,7 @@ export function initControls(sceneRef, cameraRef) {
 
     const devButton = document.getElementById('dev-console-button');
     if (devButton) devButton.addEventListener('click', handleDevButtonClick);
+
+    // Add a simple loop to handle key-based movement direction continuously
+    setInterval(updateBearMovement, 16);
 }

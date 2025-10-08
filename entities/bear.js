@@ -14,10 +14,10 @@ const eyeBlackMat = new THREE.MeshLambertMaterial({ color: 0x000000 });
 const muzzleLightMat = new THREE.MeshLambertMaterial({ color: 0xe6e6e6 });
 
 export const BEAR_X_LIMIT = 3.5;
-const BEAR_MOVE_SPEED = 0.08;
+const BEAR_MOVE_SPEED_PER_SEC = 4.8; // 0.08 * 60
 /* add Z roll controls */
 export const BEAR_Z_MIN = -9.0, BEAR_Z_MAX = 2.1;
-const BEAR_Z_SPEED = 0.012;
+const BEAR_Z_SPEED_PER_SEC = 0.72; // 0.012 * 60
 const BEAR_WOBBLE_AMOUNT = 0.2;
 
 export function createBear(type = 'splashy', cosmeticId = null) {
@@ -144,13 +144,13 @@ export function createBear(type = 'splashy', cosmeticId = null) {
     return group;
 }
 
-export function updateBear(bear, moveDirection) {
+export function updateBear(bear, moveDirection, dt = 1/60) {
     if (moveDirection !== 0 && bear.userData.isMovingWithKeys) {
         bear.userData.targetX = THREE.MathUtils.clamp(bear.position.x + moveDirection, -BEAR_X_LIMIT, BEAR_X_LIMIT);
     }
     const oldX = bear.position.x;
     const distanceToTarget = bear.userData.targetX - bear.position.x;
-    const moveThisFrame = Math.sign(distanceToTarget) * Math.min(Math.abs(distanceToTarget), BEAR_MOVE_SPEED);
+    const moveThisFrame = Math.sign(distanceToTarget) * Math.min(Math.abs(distanceToTarget), BEAR_MOVE_SPEED_PER_SEC * dt);
     if (Math.abs(distanceToTarget) > 0.01) {
         bear.position.x += moveThisFrame;
     }
@@ -158,18 +158,18 @@ export function updateBear(bear, moveDirection) {
     if (typeof bear.userData.zTarget === 'number') {
         bear.userData.zTarget = THREE.MathUtils.clamp(bear.userData.zTarget, BEAR_Z_MIN, BEAR_Z_MAX);
         const dz = bear.userData.zTarget - bear.position.z;
-        const stepZ = Math.sign(dz) * Math.min(Math.abs(dz), BEAR_Z_SPEED);
+        const stepZ = Math.sign(dz) * Math.min(Math.abs(dz), BEAR_Z_SPEED_PER_SEC * dt);
         if (Math.abs(dz) > 0.001) bear.position.z += stepZ;
     }
 
     const velocityX = bear.position.x - oldX;
     if (Math.abs(velocityX) > 0.001) {
-        bear.userData.wobbleTimer += 0.2;
+        bear.userData.wobbleTimer += (dt * 60) * 0.2;
         bear.rotation.z = Math.sin(bear.userData.wobbleTimer) * BEAR_WOBBLE_AMOUNT;
     } else {
         bear.rotation.z = THREE.MathUtils.lerp(bear.rotation.z, 0, 0.1);
     }
-    tickBearBlink(bear);
+    tickBearBlink(bear, dt);
 }
 
 export function getHandAnchor(bearGroup, side = 'right') {
